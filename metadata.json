@@ -1,0 +1,6 @@
+{
+  "name": "Remix: AI Quiz Generator",
+  "description": "Full-stack application that generates AI quizzes from uploaded PDF or Word documents using Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

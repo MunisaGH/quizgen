@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation Helpers
+    function isValidQuiz(data) {
+      return data.keys().hasAll(['userId', 'title', 'sourceFileName', 'questions', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() <= 300 &&
+             data.sourceFileName is string && data.sourceFileName.size() <= 300 &&
+             data.questions is list && data.questions.size() > 0 && data.questions.size() <= 200 &&
+             data.createdAt == request.time &&
+             (data.keys().hasOnly(['userId', 'title', 'sourceFileName', 'questions', 'createdAt']));
+    }
+
+    function isValidResult(data) {
+      return data.keys().hasAll(['userId', 'quizId', 'score', 'answers', 'createdAt']) &&
+             data.userId is string && data.userId == request.auth.uid &&
+             data.quizId is string &&
+             data.score is number &&
+             data.answers is list && data.answers.size() <= 200 &&
+             data.createdAt == request.time &&
+             (data.keys().hasOnly(['userId', 'quizId', 'score', 'answers', 'createdAt']));
+    }
+
+    match /quizzes/{quizId} {
+      // User can read their own quizzes
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+      
+      // User can create quizzes and assign themselves as owner
+      allow create: if isSignedIn() && isValidId(quizId) && isValidQuiz(incoming());
+
+      // Limit updates and deletes for now, or allow delete if owner
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+
+      // Allow list
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /results/{resultId} {
+      // User can read their own results
+      allow read: if isSignedIn() && existing().userId == request.auth.uid;
+
+      // User can submit a new result for themselves
+      allow create: if isSignedIn() && isValidId(resultId) && isValidResult(incoming()) &&
+                    // Verify the quiz exists and belongs to them
+                    exists(/databases/$(database)/documents/quizzes/$(incoming().quizId)) &&
+                    get(/databases/$(database)/documents/quizzes/$(incoming().quizId)).data.userId == request.auth.uid;
+
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+      
+      // Allow list
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+  }
+}

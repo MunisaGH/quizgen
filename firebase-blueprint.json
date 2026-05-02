@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Quiz": {
+      "title": "Quiz",
+      "description": "A generated quiz with questions",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "sourceFileName": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "question": { "type": "string" },
+              "options": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "correctAnswer": { "type": "number" }
+            }
+          }
+        },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["userId", "title", "questions", "createdAt"]
+    },
+    "Result": {
+      "title": "Result",
+      "description": "User's attempt on a specific quiz",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "quizId": { "type": "string" },
+        "score": { "type": "number" },
+        "answers": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["userId", "quizId", "score", "answers", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/quizzes/{quizId}": {
+      "schema": { "$ref": "Quiz" },
+      "description": "Stores generated quizzes. Users can only read and write their own quizzes."
+    },
+    "/results/{resultId}": {
+      "schema": { "$ref": "Result" },
+      "description": "Stores user results for taken quizzes. Users can only see their own results."
+    }
+  }
+}
