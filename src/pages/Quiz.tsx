@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, X, Shuffle } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle2, XCircle, X, Shuffle, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { db } from '../lib/firebase';
+import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 
 interface Question {
   question: string;
@@ -14,6 +16,7 @@ interface QuizData {
   userId: string;
   title: string;
   questions: Question[];
+  timer: number | null;
   createdAt: any;
 }
 
@@ -28,14 +31,17 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchQuiz() {
       if (!quizId || !user) return;
       try {
-        const stored = localStorage.getItem(`quiz_${quizId}`);
-        if (stored) {
-          const data = JSON.parse(stored) as QuizData;
+        const docRef = doc(db, "quizzes", quizId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          const data = docSnap.data() as QuizData;
           if (data.userId !== user.uid) {
             setError("Sizda bu testga kirish huquqi yo'q");
           } else {
@@ -54,6 +60,56 @@ export default function Quiz() {
     }
     fetchQuiz();
   }, [quizId, user]);
+
+  useEffect(() => {
+    if (quiz?.timer && timeLeft === null) {
+      setTimeLeft(quiz.timer * 60);
+    }
+  }, [quiz, timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0 || submitting) {
+      if (timeLeft === 0 && !submitting) {
+        handleAutoSubmit();
+      }
+      return;
+    }
+
+    const timerId = setInterval(() => {
+      setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [timeLeft, submitting]);
+
+  const handleAutoSubmit = async () => {
+    if (!quiz || !user || !quizId) return;
+    setSubmitting(true);
+    try {
+      const score = calculateScore();
+      const newResult = {
+        userId: user.uid,
+        quizId: quizId,
+        score: score,
+        answers: answers,
+        createdAt: new Date().toISOString(),
+        autoSubmitted: true
+      };
+      const docRef = await addDoc(collection(db, "results"), newResult);
+      navigate(`/result/${docRef.id}`);
+    } catch (err) {
+      console.error(err);
+      navigate('/');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSelectOption = (optionIndex: number) => {
     // Only allow selection if an answer hasn't been chosen yet for this question
@@ -104,7 +160,15 @@ export default function Quiz() {
     setQuiz(newData);
     setAnswers(new Array(shuffledQuestions.length).fill(-1));
     setCurrentIndex(0);
-    localStorage.setItem(`quiz_${quizId}`, JSON.stringify(newData));
+    
+    // Update in Firestore
+    try {
+      await updateDoc(doc(db, "quizzes", quizId!), {
+        questions: shuffledQuestions
+      });
+    } catch (err) {
+      console.error("Shuffle save error:", err);
+    }
   };
 
   const calculateScore = () => {
@@ -130,9 +194,7 @@ export default function Quiz() {
     setSubmitting(true);
     try {
       const score = calculateScore();
-      const resultId = Math.random().toString(36).substring(7);
       const newResult = {
-        id: resultId,
         userId: user.uid,
         quizId: quizId,
         score: score,
@@ -140,11 +202,11 @@ export default function Quiz() {
         createdAt: new Date().toISOString()
       };
       
-      localStorage.setItem(`result_${resultId}`, JSON.stringify(newResult));
-      navigate(`/result/${resultId}`);
+      const docRef = await addDoc(collection(db, "results"), newResult);
+      navigate(`/result/${docRef.id}`);
     } catch (err) {
       console.error(err);
-      alert("Testni saqlash bekor qilindi");
+      alert("Natijani saqlashda xatolik yuz berdi");
     } finally {
       setSubmitting(false);
     }
@@ -196,9 +258,21 @@ export default function Quiz() {
 
         <div className="p-6 md:p-8 border-b border-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <h3 className="text-lg md:text-xl font-[800] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 truncate">{quiz.title}</h3>
-          <span className="text-[10px] md:text-xs text-blue-600 font-[800] tracking-widest uppercase flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 w-fit shrink-0">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> {answers.filter(a => a !== -1).length} / {quiz.questions.length} JAVOB BERILDI
-          </span>
+          
+          <div className="flex items-center gap-3">
+            {timeLeft !== null && (
+              <div className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-full border font-bold text-sm transition-all",
+                timeLeft < 60 ? "bg-red-50 text-red-600 border-red-100 animate-pulse" : "bg-slate-50 text-slate-600 border-slate-100"
+              )}>
+                <Clock className="w-4 h-4" />
+                {formatTime(timeLeft)}
+              </div>
+            )}
+            <span className="text-[10px] md:text-xs text-blue-600 font-[800] tracking-widest uppercase flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 w-fit shrink-0">
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> {answers.filter(a => a !== -1).length} / {quiz.questions.length} JAVOB BERILDI
+            </span>
+          </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 md:p-8 relative z-10">

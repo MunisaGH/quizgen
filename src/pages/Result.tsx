@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface ResultData {
   userId: string;
@@ -37,18 +39,22 @@ export default function Result() {
     async function fetchData() {
       if (!resultId || !user) return;
       try {
-        const resultStored = localStorage.getItem(`result_${resultId}`);
-        if (!resultStored) throw new Error("Result not found");
+        const resultRef = doc(db, "results", resultId);
+        const resultSnap = await getDoc(resultRef);
         
-        const rData = JSON.parse(resultStored) as ResultData;
-        if (rData.userId !== user.uid) throw new Error("Unauthorized");
+        if (!resultSnap.exists()) throw new Error("Natija topilmadi");
+        
+        const rData = resultSnap.data() as ResultData;
+        if (rData.userId !== user.uid) throw new Error("Sizda ushbu natijani ko'rish huquqi yo'q");
         setResult(rData);
 
-        const quizStored = localStorage.getItem(`quiz_${rData.quizId}`);
-        if (quizStored) {
-           setQuiz(JSON.parse(quizStored) as QuizData);
+        const quizRef = doc(db, "quizzes", rData.quizId);
+        const quizSnap = await getDoc(quizRef);
+        
+        if (quizSnap.exists()) {
+           setQuiz(quizSnap.data() as QuizData);
         } else {
-           throw new Error("Quiz details missing");
+           throw new Error("Test ma'lumotlari topilmadi");
         }
       } catch (err: any) {
         setError(err.message);

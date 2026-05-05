@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles } from 'lucide-react';
+import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock } from 'lucide-react';
+import { db } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 
 type ViewMode = 'menu' | 'upload' | 'guide';
@@ -14,6 +16,7 @@ export default function Home() {
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showInvalid, setShowInvalid] = useState(false);
+  const [timer, setTimer] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -121,18 +124,17 @@ export default function Home() {
       setUploadProgress(100);
       await new Promise(r => setTimeout(r, 400)); 
 
-      const quizId = Math.random().toString(36).substring(7);
       const newQuiz = {
-        id: quizId,
         userId: user.uid,
         title: file.name.replace(/\.[^/.]+$/, ""),
         sourceFileName: file.name,
         questions: data.questions,
+        timer: timer,
         createdAt: new Date().toISOString()
       };
       
-      localStorage.setItem(`quiz_${quizId}`, JSON.stringify(newQuiz));
-      navigate(`/quiz/${quizId}`);
+      const docRef = await addDoc(collection(db, "quizzes"), newQuiz);
+      navigate(`/quiz/${docRef.id}`);
 
     } catch (err: any) {
       clearInterval(progressInterval);
@@ -245,6 +247,44 @@ export default function Home() {
               </div>
             )}
           </div>
+
+            </div>
+          )}
+
+          {file && !loading && (
+            <div className="mt-6 px-4">
+              <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5" /> VAQT CHEGARASI (DAQIQA)
+              </p>
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 10, 15, 30].map(m => (
+                  <button 
+                    key={m} 
+                    onClick={() => setTimer(m)}
+                    className={cn(
+                      "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                      timer === m 
+                        ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" 
+                        : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
+                    )}
+                  >
+                    {m}m
+                  </button>
+                ))}
+                <button 
+                  onClick={() => setTimer(null)}
+                  className={cn(
+                    "col-span-4 py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                    timer === null 
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" 
+                      : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
+                  )}
+                >
+                  CHEKSIZ VAQT
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 p-4 rounded-2xl bg-red-50 text-red-800 text-sm border border-red-100/50 font-medium text-center flex items-center justify-center gap-2">

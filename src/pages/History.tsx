@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, Calendar, ChevronRight, PlayCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 interface QuizMeta {
   id: string;
@@ -19,25 +21,23 @@ export default function History() {
     async function fetchHistory() {
       if (!user) return;
       try {
+        const q = query(
+          collection(db, "quizzes"), 
+          where("userId", "==", user.uid)
+        );
+        
+        const querySnapshot = await getDocs(q);
         const fetchedData: QuizMeta[] = [];
         
-        for (let i = 0; i < localStorage.length; i++) {
-           const key = localStorage.key(i);
-           if (key && key.startsWith('quiz_')) {
-              const quizStr = localStorage.getItem(key);
-              if (quizStr) {
-                 const quizData = JSON.parse(quizStr);
-                 if (quizData.userId === user.uid) {
-                    fetchedData.push({
-                      id: quizData.id,
-                      title: quizData.title,
-                      createdAt: quizData.createdAt,
-                      questionCount: quizData.questions ? quizData.questions.length : 0
-                    });
-                 }
-              }
-           }
-        }
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          fetchedData.push({
+            id: doc.id,
+            title: data.title,
+            createdAt: data.createdAt,
+            questionCount: data.questions ? data.questions.length : 0
+          });
+        });
         
         fetchedData.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
