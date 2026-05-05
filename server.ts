@@ -37,74 +37,33 @@ async function startServer() {
 
   app.post('/api/generate-quiz', upload.single('file'), async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+      const { questionCount, difficulty, language, mode, text: bodyText, topic } = req.body;
+      let sourceText = '';
+
+      if (mode === 'file') {
+        if (!req.file) return res.status(400).json({ error: "Fayl yuklanmadi." });
+        if (req.file.mimetype === 'application/pdf') {
+          const data = await pdfParse(req.file.buffer);
+          sourceText = data.text;
+        } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+          const data = await mammoth.extractRawText({ buffer: req.file.buffer });
+          sourceText = data.value;
+        } else {
+          return res.status(400).json({ error: "Faqat PDF yoki DOCX fayllari qo'llab-quvvatlanadi." });
+        }
+      } else if (mode === 'text') {
+        sourceText = bodyText || '';
+      } else if (mode === 'topic') {
+        sourceText = `Mavzu: ${topic}`;
       }
 
-      let text = '';
-
-      if (req.file.mimetype === 'application/pdf') {
-        const data = await pdfParse(req.file.buffer);
-        text = data.text;
-      } else if (req.file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        const data = await mammoth.extractRawText({ buffer: req.file.buffer });
-        text = data.value;
-      } else {
-        return res.status(400).json({ error: "Unsupported file type. Please upload a PDF or DOCX file." });
+      if (!sourceText.trim() && mode !== 'topic') {
+         return res.status(400).json({ error: "Ma'lumot topilmadi." });
       }
-
-      if (!text.trim()) {
-         return res.status(400).json({ error: "Could not extract text from file." });
-      }
-
-      // Format-based custom parsing
-      // Agar text ichida "++++" va "====" qoidalari ko'p ishlatilgan bo'lsa, o'zimiz parse qilamiz
-      if (text.includes('++++') && text.includes('====')) {
-         try {
-           const blocks = text.split('++++').map(b => b.trim()).filter(b => b.length > 0);
-           const questions = [];
-           
-           for (const block of blocks) {
-             const parts = block.split('====').map(p => p.trim());
-             if (parts.length >= 2) {
-               const questionText = parts[0];
-               const optionsRaw = parts.slice(1);
-               let correctAnswerIndex = 0;
-               const options = [];
-               
-               for (let i = 0; i < optionsRaw.length; i++) {
-                 let opt = optionsRaw[i];
-                 if (opt.startsWith('#')) {
-                   correctAnswerIndex = i;
-                   opt = opt.substring(1).trim();
-                 }
-                 options.push(opt);
-               }
-               
-               if (options.length >= 2 && questionText) {
-                 questions.push({
-                   question: questionText,
-                   options: options,
-                   correctAnswer: correctAnswerIndex
-                 });
-               }
-             }
-           }
-           
-           if (questions.length > 0) {
-              return res.json({ questions });
-           }
-         } catch (e) {
-           console.error("Manual parse error:", e);
-           // Fallback to AI parsing if manual fails
-         }
-      }
-
-      const { questionCount, difficulty, language } = req.body;
 
       try {
         if (!openai) {
-          return res.status(500).json({ error: "OpenAI API sozlanmagan. Ilovani to'g'ri sozlash uchun OpenAI API kalit kiritilishi kerak." });
+          return res.status(500).json({ error: "OpenAI API sozlanmagan." });
         }
 
         const languageMap: Record<string, string> = {
@@ -121,13 +80,22 @@ async function startServer() {
 
         const targetLang = languageMap[language] || "O'ZBEK TILIDA";
         const targetDiff = difficultyMap[difficulty] || "o'rtacha darajadagi";
-        const targetCount = questionCount || "maksimal";
+        const targetCount = questionCount || "10";
 
-        const prompt = `Sen professional o'qituvchi va malakali test tuzuvchisan. Quyidagi taqdim etilgan matn asosida ${targetLang} mantiqiy va sifatli test savollarini tuz. 
+        let prompt = '';
+        if (mode === 'topic') {
+          prompt = `Sen professional o'qituvchi va malakali test tuzuvchisan. Quyidagi mavzu bo'yicha ${targetLang} mantiqiy va sifatli test savollarini O'Z BILIMLARING ASOSIDA tuz.
+Mavzu: ${topic}
+Qiyinlik darajasi: ${targetDiff}.
+Savollar soni: Taxminan ${targetCount} ta savol tuz.`;
+        } else {
+          prompt = `Sen professional o'qituvchi va malakali test tuzuvchisan. Quyidagi taqdim etilgan matn asosida ${targetLang} mantiqiy va sifatli test savollarini tuz. 
 Matndan eng muhim faktlarni ajratib olgin. Variantlar chalg'ituvchi va ishonchli ko'rinishi kerak.
 Qiyinlik darajasi: ${targetDiff}.
-Savollar soni: SENSING MATN VA FOYDALANUVCHI TALABIGA QARAB TAXMINAN ${targetCount} TA SAVOL TUZ.
+Savollar soni: SENSING MATN VA FOYDALANUVCHI TALABIGA QARAB TAXMINAN ${targetCount} TA SAVOL TUZ.`;
+        }
 
+        prompt += `
 Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi shart:
 {
   "questions": [
@@ -138,13 +106,13 @@ Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi s
     }
   ]
 }
-Matn hajmiga qarab mavzuni maksimal qamrab oluvchi savollar tuz. correctAnswer - bu to'g'ri javobning options qatoridagi indeksi (0 dan 3 gacha). Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
+correctAnswer - bu to'g'ri javobning options qatoridagi indeksi (0 dan 3 gacha). Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
 
         const response = await openai.chat.completions.create({
            model: 'gpt-4o-mini',
            messages: [
              { role: 'system', content: prompt },
-             { role: 'user', content: `MATN:\n${text.substring(0, 90000)}` }
+             { role: 'user', content: mode === 'topic' ? `Mavzu haqida test tuz: ${topic}` : `MATN:\n${sourceText.substring(0, 90000)}` }
            ],
            response_format: { type: "json_object" },
            temperature: 0.7

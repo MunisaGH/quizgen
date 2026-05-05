@@ -20,6 +20,9 @@ export default function Home() {
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>('medium');
   const [language, setLanguage] = useState<string>('uzbek');
+  const [inputMode, setInputMode] = useState<'file' | 'text' | 'topic'>('file');
+  const [inputText, setInputText] = useState('');
+  const [inputTopic, setInputTopic] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -87,10 +90,20 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      if (inputMode === 'file' && file) {
+        formData.append('file', file);
+      } else if (inputMode === 'text' && inputText) {
+        formData.append('text', inputText);
+      } else if (inputMode === 'topic' && inputTopic) {
+        formData.append('topic', inputTopic);
+      } else {
+        throw new Error("Iltimos, kerakli ma'lumotni kiriting.");
+      }
+      
       formData.append('questionCount', questionCount.toString());
       formData.append('difficulty', difficulty);
       formData.append('language', language);
+      formData.append('mode', inputMode);
 
       const response = await fetch('/api/generate-quiz', {
         method: 'POST',
@@ -132,8 +145,9 @@ export default function Home() {
 
       const newQuiz = {
         userId: user.uid,
-        title: file.name.replace(/\.[^/.]+$/, ""),
-        sourceFileName: file.name,
+        title: inputMode === 'file' ? file!.name.replace(/\.[^/.]+$/, "") : (inputMode === 'topic' ? inputTopic : "Matn asosida test"),
+        sourceFileName: inputMode === 'file' ? file!.name : null,
+        inputMode: inputMode,
         questions: data.questions,
         timer: timer,
         difficulty: difficulty,
@@ -169,97 +183,154 @@ export default function Home() {
 
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-[800] tracking-tight mb-3 text-zinc-900">
-            Faylni yuklang
+            Test yaratish
           </h1>
           <p className="text-zinc-500 text-sm leading-relaxed max-w-md">
-            Hujjatingizni tashlang, qolgan barcha ishni tizim algoritmlari o'zi bajaradi. Interaktiv test tayyorlanadi.
+            O'zingizga qulay usulni tanlang va interaktiv testga ega bo'ling.
           </p>
         </div>
 
-        <div className="bg-white rounded-[2rem] p-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-zinc-200/60">
-          <div 
-            className={cn(
-              "border-2 border-dashed rounded-[1.5rem] p-12 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer text-center relative overflow-hidden",
-              dragActive ? "border-indigo-500 bg-indigo-50/50 scale-[1.01]" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-50",
-              file && !showInvalid ? "border-green-400 bg-green-50/30" : "",
-              showInvalid ? "border-red-400 bg-red-50/50" : "",
-              loading ? "opacity-70 pointer-events-none" : ""
-            )}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => !file && fileInputRef.current?.click()}
-          >
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-              onChange={handleFileChange}
-            />
+        <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] mb-6 gap-1 border border-zinc-200/50">
+          {[
+            { id: 'file', label: 'Fayl yuklash', icon: UploadCloud },
+            { id: 'text', label: 'Matn kiritish', icon: FileText },
+            { id: 'topic', label: 'Mavzu bo\'yicha', icon: MessageSquare }
+          ].map(m => (
+            <button
+              key={m.id}
+              onClick={() => { setInputMode(m.id as any); setFile(null); setInputText(''); setInputTopic(''); setError(''); }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-[800] transition-all duration-300",
+                inputMode === m.id 
+                  ? "bg-white text-zinc-900 shadow-sm border border-zinc-200/50" 
+                  : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/50"
+              )}
+            >
+              <m.icon className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{m.label}</span>
+            </button>
+          ))}
+        </div>
 
-            {!file ? (
-              <>
-                <div className={cn(
-                  "w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-500 ease-out shadow-sm",
-                  dragActive ? "bg-indigo-600 text-white scale-110 shadow-indigo-200" : "bg-white text-zinc-900 border border-zinc-200 shadow-zinc-100"
-                )}>
-                  {showInvalid ? (
-                    <XCircle className="w-8 h-8 text-red-500" />
+        <div className="bg-white rounded-[2rem] p-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-zinc-200/60">
+          {inputMode === 'file' ? (
+            <div 
+              className={cn(
+                "border-2 border-dashed rounded-[1.5rem] p-12 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer text-center relative overflow-hidden",
+                dragActive ? "border-indigo-500 bg-indigo-50/50 scale-[1.01]" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-50",
+                file && !showInvalid ? "border-green-400 bg-green-50/30" : "",
+                showInvalid ? "border-red-400 bg-red-50/50" : "",
+                loading ? "opacity-70 pointer-events-none" : ""
+              )}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              onClick={() => !file && fileInputRef.current?.click()}
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+                onChange={handleFileChange}
+              />
+
+              {!file ? (
+                <>
+                  <div className={cn(
+                    "w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-500 ease-out shadow-sm",
+                    dragActive ? "bg-indigo-600 text-white scale-110 shadow-indigo-200" : "bg-white text-zinc-900 border border-zinc-200 shadow-zinc-100"
+                  )}>
+                    {showInvalid ? (
+                      <XCircle className="w-8 h-8 text-red-500" />
+                    ) : (
+                      <UploadCloud className="w-8 h-8" />
+                    )}
+                  </div>
+                  <p className="text-lg font-bold text-zinc-800 mb-1">
+                    {showInvalid ? "Kechirasiz, yaroqsiz format" : (dragActive ? "Faylni shu yerda qo'yib yuboring" : "Tanlash uchun bosing yoki tashlang")}
+                  </p>
+                  <p className="text-sm text-zinc-400 font-medium">
+                    PDF yoki Word hujjatlari (Max. 10MB)
+                  </p>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center w-full relative z-10 animate-in fade-in zoom-in-95 duration-300">
+                  <div className="w-20 h-20 bg-green-500 text-white shadow-xl shadow-green-500/20 rounded-full flex items-center justify-center mb-5">
+                    <FileCheck2 className="w-10 h-10" />
+                  </div>
+                  <p className="text-lg font-bold text-zinc-900 break-words w-full px-4 mb-1">{file.name}</p>
+                  <p className="text-sm text-zinc-400 font-medium">{(file.size / 1024).toFixed(1)} KB</p>
+                  
+                  {loading ? (
+                     <div className="w-full max-w-sm mx-auto mt-8">
+                       <div className="flex justify-between text-xs font-bold text-zinc-500 mb-2.5 uppercase tracking-widest">
+                         <span className="text-indigo-600">
+                           {uploadProgress < 30 ? "Yuklanmoqda..." : 
+                            uploadProgress < 70 ? "Matn o'qilmoqda..." : "Generatsiya..."}
+                         </span>
+                         <span>{Math.round(uploadProgress)}%</span>
+                       </div>
+                       <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-600 transition-all duration-300 ease-out relative rounded-full" 
+                            style={{ width: `${uploadProgress}%` }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
+                          </div>
+                       </div>
+                    </div>
                   ) : (
-                    <UploadCloud className="w-8 h-8" />
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                      className="mt-6 text-xs uppercase tracking-widest font-bold text-red-500 hover:text-white hover:bg-red-500 border border-red-200 transition-all px-6 py-2.5 rounded-full"
+                    >
+                      Boshqa fayl tanlash
+                    </button>
                   )}
                 </div>
-                <p className="text-lg font-bold text-zinc-800 mb-1">
-                  {showInvalid ? "Kechirasiz, yaroqsiz format" : (dragActive ? "Faylni shu yerda qo'yib yuboring" : "Tanlash uchun bosing yoki tashlang")}
-                </p>
-                <p className="text-sm text-zinc-400 font-medium">
-                  PDF yoki Word hujjatlari (Max. 10MB)
-                </p>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center w-full relative z-10 animate-in fade-in zoom-in-95 duration-300">
-                <div className="w-20 h-20 bg-green-500 text-white shadow-xl shadow-green-500/20 rounded-full flex items-center justify-center mb-5">
-                  <FileCheck2 className="w-10 h-10" />
-                </div>
-                <p className="text-lg font-bold text-zinc-900 break-words w-full px-4 mb-1">{file.name}</p>
-                <p className="text-sm text-zinc-400 font-medium">{(file.size / 1024).toFixed(1)} KB</p>
-                
-                {loading ? (
-                   <div className="w-full max-w-sm mx-auto mt-8">
-                     <div className="flex justify-between text-xs font-bold text-zinc-500 mb-2.5 uppercase tracking-widest">
-                       <span className="text-indigo-600">
-                         {uploadProgress < 30 ? "Yuklanmoqda..." : 
-                          uploadProgress < 70 ? "Matn o'qilmoqda..." : "Generatsiya..."}
-                       </span>
-                       <span>{Math.round(uploadProgress)}%</span>
-                     </div>
-                     <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-indigo-600 transition-all duration-300 ease-out relative rounded-full" 
-                          style={{ width: `${uploadProgress}%` }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
-                        </div>
-                     </div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    className="mt-6 text-xs uppercase tracking-widest font-bold text-red-500 hover:text-white hover:bg-red-500 border border-red-200 transition-all px-6 py-2.5 rounded-full"
-                  >
-                    Boshqa fayl tanlash
-                  </button>
+              )}
+            </div>
+          ) : inputMode === 'text' ? (
+            <div className="p-2">
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Matnni shu yerga kiriting (nusxalab qo'ying)..."
+                className="w-full h-48 p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-zinc-800 font-medium text-sm leading-relaxed resize-none"
+                disabled={loading}
+              />
+              <div className="mt-4 flex items-center justify-between px-2">
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Matn hajmi: {inputText.length} belgi</p>
+                {inputText.length > 0 && !loading && (
+                   <button onClick={() => setInputText('')} className="text-[10px] text-red-500 font-bold uppercase tracking-widest hover:underline">Tozalash</button>
                 )}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="p-2 py-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inputTopic}
+                  onChange={(e) => setInputTopic(e.target.value)}
+                  placeholder="Mavzuni kiriting (masalan: Fotosintez jarayoni)..."
+                  className="w-full p-6 pl-14 rounded-2xl bg-zinc-50 border border-zinc-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-zinc-800 font-bold text-lg"
+                  disabled={loading}
+                />
+                <MessageSquare className="w-6 h-6 text-zinc-400 absolute left-5 top-1/2 -translate-y-1/2" />
+              </div>
+              <p className="mt-4 text-xs text-zinc-400 font-medium text-center px-4">
+                AI o'z bilimidan foydalanib ushbu mavzu bo'yicha mukammal test savollarini tuzib beradi.
+              </p>
+            </div>
+          )}
 
             </div>
           )}
 
-          {file && !loading && (
+          {((inputMode === 'file' && file) || (inputMode === 'text' && inputText.length > 10) || (inputMode === 'topic' && inputTopic.length > 2)) && !loading && (
             <div className="mt-8 space-y-8 px-2">
               {/* Question Count */}
               <div>
@@ -383,10 +454,10 @@ export default function Home() {
           <div className="mt-4">
             <button
               onClick={generateQuiz}
-              disabled={loading || !file}
+              disabled={loading || (inputMode === 'file' && !file) || (inputMode === 'text' && !inputText) || (inputMode === 'topic' && !inputTopic)}
               className={cn(
                 "w-full py-4 px-6 rounded-2xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-3",
-                loading || !file
+                loading || (inputMode === 'file' && !file) || (inputMode === 'text' && !inputText) || (inputMode === 'topic' && !inputTopic)
                   ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                   : "bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/20 hover:-translate-y-1 active:translate-y-0"
               )}
