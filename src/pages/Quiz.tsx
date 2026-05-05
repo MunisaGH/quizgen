@@ -46,7 +46,17 @@ export default function Quiz() {
             setError("Sizda bu testga kirish huquqi yo'q");
           } else {
             setQuiz(data);
-            setAnswers(new Array(data.questions.length).fill(-1));
+            
+            // Check for saved progress in localStorage
+            const savedProgress = localStorage.getItem(`quiz_progress_${quizId}`);
+            if (savedProgress) {
+              const { answers: savedAnswers, currentIndex: savedIndex, timeLeft: savedTime } = JSON.parse(savedProgress);
+              setAnswers(savedAnswers);
+              setCurrentIndex(savedIndex);
+              if (savedTime !== undefined) setTimeLeft(savedTime);
+            } else {
+              setAnswers(new Array(data.questions.length).fill(-1));
+            }
           }
         } else {
           setError("Test topilmadi");
@@ -76,11 +86,19 @@ export default function Quiz() {
     }
 
     const timerId = setInterval(() => {
-      setTimeLeft(prev => (prev !== null ? prev - 1 : null));
+      setTimeLeft(prev => {
+        const newTime = (prev !== null ? prev - 1 : null);
+        // Sync time to localstorage periodically
+        if (newTime !== null && newTime % 5 === 0) {
+           const progress = JSON.parse(localStorage.getItem(`quiz_progress_${quizId}`) || '{}');
+           localStorage.setItem(`quiz_progress_${quizId}`, JSON.stringify({ ...progress, timeLeft: newTime }));
+        }
+        return newTime;
+      });
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [timeLeft, submitting]);
+  }, [timeLeft, submitting, quizId]);
 
   const handleAutoSubmit = async () => {
     if (!quiz || !user || !quizId) return;
@@ -96,6 +114,8 @@ export default function Quiz() {
         autoSubmitted: true
       };
       const docRef = await addDoc(collection(db, "results"), newResult);
+      // Clear progress on successful submit
+      localStorage.removeItem(`quiz_progress_${quizId}`);
       navigate(`/result/${docRef.id}`);
     } catch (err) {
       console.error(err);
@@ -112,23 +132,37 @@ export default function Quiz() {
   };
 
   const handleSelectOption = (optionIndex: number) => {
-    // Only allow selection if an answer hasn't been chosen yet for this question
-    if (answers[currentIndex] !== -1) return;
-
     const newAnswers = [...answers];
     newAnswers[currentIndex] = optionIndex;
     setAnswers(newAnswers);
+    
+    // Autosave progress
+    localStorage.setItem(`quiz_progress_${quizId}`, JSON.stringify({
+      answers: newAnswers,
+      currentIndex: currentIndex,
+      timeLeft: timeLeft
+    }));
   };
 
   const handleNext = () => {
     if (quiz && currentIndex < quiz.questions.length - 1) {
-      setCurrentIndex(curr => curr + 1);
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      
+      // Update index in autosave
+      const progress = JSON.parse(localStorage.getItem(`quiz_progress_${quizId}`) || '{}');
+      localStorage.setItem(`quiz_progress_${quizId}`, JSON.stringify({ ...progress, currentIndex: nextIndex }));
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(curr => curr - 1);
+      const prevIndex = currentIndex - 1;
+      setCurrentIndex(prevIndex);
+
+      // Update index in autosave
+      const progress = JSON.parse(localStorage.getItem(`quiz_progress_${quizId}`) || '{}');
+      localStorage.setItem(`quiz_progress_${quizId}`, JSON.stringify({ ...progress, currentIndex: prevIndex }));
     }
   };
 
@@ -257,9 +291,31 @@ export default function Quiz() {
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none z-0"></div>
 
         <div className="p-6 md:p-8 border-b border-slate-200/50 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <h3 className="text-lg md:text-xl font-[800] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 truncate">{quiz.title}</h3>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg md:text-xl font-[800] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 truncate mb-4">{quiz.title}</h3>
+            
+            {/* Question Map */}
+            <div className="flex flex-wrap gap-2">
+              {quiz.questions.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={cn(
+                    "w-8 h-8 rounded-lg text-[10px] font-bold transition-all border flex items-center justify-center",
+                    currentIndex === idx 
+                      ? "bg-blue-600 text-white border-blue-600 ring-2 ring-blue-100" 
+                      : (answers[idx] !== -1 
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100" 
+                          : "bg-white text-zinc-400 border-zinc-200 hover:border-zinc-400")
+                  )}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col items-end gap-3 shrink-0">
             {timeLeft !== null && (
               <div className={cn(
                 "flex items-center gap-2 px-3 py-1.5 rounded-full border font-bold text-sm transition-all",
@@ -311,11 +367,10 @@ export default function Quiz() {
                 <button
                   key={idx}
                   onClick={() => handleSelectOption(idx)}
-                  disabled={hasAnswered}
                   className={cn(
                     "w-full text-left p-4 text-xs md:text-sm rounded-xl border-2 transition-all duration-300 flex items-center justify-between group",
                     buttonStyle,
-                    hasAnswered ? "cursor-default" : "cursor-pointer"
+                    "cursor-pointer"
                   )}
                 >
                   <div className="flex items-center gap-3 md:gap-4">
@@ -330,44 +385,53 @@ export default function Quiz() {
                      </span>
                   </div>
                   
-                  {hasAnswered && isCorrect && (
-                     <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 ml-2" />
-                  )}
-                  {hasAnswered && isSelected && !isCorrect && (
-                     <XCircle className="w-5 h-5 text-red-500 shrink-0 ml-2" />
+                  {hasAnswered && isSelected && (
+                     <CheckCircle2 className={cn("w-5 h-5 shrink-0 ml-2", isCorrect ? "text-green-500" : "text-red-500")} />
                   )}
                 </button>
               );
             })}
           </div>
         </div>
+      </div>
 
-        <div className="p-4 md:p-6 border-t border-slate-200/50 bg-slate-50/50 backdrop-blur-md flex justify-between items-center mt-auto relative z-10 gap-2">
+      <div className="fixed bottom-0 left-0 right-0 p-4 md:relative md:p-0 bg-white md:bg-transparent border-t md:border-t-0 border-slate-200 z-40">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
-            className="flex items-center justify-center gap-1.5 md:gap-2 px-4 md:px-5 py-3 border border-slate-200 rounded-xl text-[10px] md:text-xs font-[800] text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-30 disabled:pointer-events-none tracking-widest uppercase flex-1 sm:flex-none"
+            className={cn(
+              "flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all duration-300",
+              currentIndex === 0 
+                ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+                : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+            )}
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">OLDINGISI</span>
-            <span className="sm:hidden">ORTGA</span>
+            <ArrowLeft className="w-4 h-4" /> OLDINGISI
           </button>
-          
-          {!isLastQuestion ? (
-            <button
-              onClick={handleNext}
-              className="flex items-center justify-center gap-1.5 md:gap-2 px-6 md:px-8 py-3 bg-slate-900 text-white rounded-xl font-[800] text-[10px] md:text-xs hover:bg-slate-800 transition-all tracking-widest uppercase shadow-lg shadow-slate-900/10 flex-1 sm:flex-none"
-            >
-              KEYINGISI
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
+
+          {isLastQuestion ? (
             <button
               onClick={submitQuiz}
               disabled={submitting}
-              className="flex items-center justify-center gap-2 px-6 md:px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-[800] text-[10px] md:text-xs hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 tracking-widest uppercase shadow-lg shadow-blue-500/20 flex-1 sm:flex-none"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-1 active:translate-y-0 transition-all duration-300 disabled:opacity-50"
             >
-              {submitting ? 'YAKUNLANMOQDA...' : 'YAKUNLASH'}
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> SAQLANMOQDA...
+                </>
+              ) : (
+                <>
+                  YAKUNLASH <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleNext}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-zinc-900 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-zinc-900/10 hover:bg-zinc-800 hover:-translate-y-1 active:translate-y-0 transition-all duration-300"
+            >
+              KEYINGISI <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>
