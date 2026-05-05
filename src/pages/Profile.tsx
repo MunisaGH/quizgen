@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { Loader2, User, Mail, BarChart3, LogOut, Award, BookOpen, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,6 +13,7 @@ export default function Profile() {
     totalResults: 0,
     avgScore: 0
   });
+  const [recentScores, setRecentScores] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +38,17 @@ export default function Profile() {
           totalResults: resultSnap.size,
           avgScore: resultSnap.size > 0 ? Math.round(totalScore / resultSnap.size) : 0
         });
+
+        // Fetch recent 10 scores for chart
+        const qRecent = query(
+          collection(db, "results"), 
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc"),
+          limit(10)
+        );
+        const recentSnap = await getDocs(qRecent);
+        const scores = recentSnap.docs.map(doc => doc.data().score).reverse();
+        setRecentScores(scores);
       } catch (err) {
         console.error("Stats fetch error:", err);
       } finally {
@@ -120,6 +132,43 @@ export default function Profile() {
                 <p className="text-2xl font-[900] text-zinc-900">{stats.avgScore}%</p>
                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">O'rtacha ball</p>
              </div>
+           </div>
+
+           {/* Progress Chart Section (4.2) */}
+           <div className="mt-12">
+              <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" /> So'nggi natijalar dinamikasi
+              </h3>
+              <div className="bg-zinc-50 border border-zinc-100 rounded-[2rem] p-8 h-64 flex items-end justify-between gap-2 md:gap-4 overflow-hidden relative">
+                {/* Grid lines */}
+                <div className="absolute inset-x-0 bottom-8 h-[1px] bg-zinc-200/50"></div>
+                <div className="absolute inset-x-0 top-1/2 h-[1px] bg-zinc-200/30 border-dashed border-t"></div>
+                
+                {recentScores.length > 0 ? (
+                  recentScores.map((score, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative z-10">
+                       <div 
+                         className={cn(
+                           "w-full rounded-t-xl transition-all duration-700 ease-out relative group-hover:brightness-110",
+                           score >= 80 ? "bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.2)]" : 
+                           score >= 50 ? "bg-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]" : 
+                           "bg-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.2)]"
+                         )}
+                         style={{ height: `${score}%`, transitionDelay: `${i * 50}ms` }}
+                       >
+                         <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-[10px] font-bold px-2 py-1 rounded transition-opacity">
+                           {score}%
+                         </div>
+                       </div>
+                       <span className="text-[10px] font-bold text-zinc-400">{i + 1}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-zinc-400 text-sm font-medium">
+                    Ma'lumotlar yetarli emas
+                  </div>
+                )}
+              </div>
            </div>
 
            {/* Recent Activity placeholder or info */}

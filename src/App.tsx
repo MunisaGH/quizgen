@@ -7,6 +7,7 @@ import Quiz from './pages/Quiz';
 import Result from './pages/Result';
 import History from './pages/History';
 import Profile from './pages/Profile';
+import SharedResult from './pages/SharedResult';
 import Navbar from './components/Navbar';
 import { PlusCircle, Book, User, Crown, LayoutGrid } from 'lucide-react';
 import { cn } from './lib/utils';
@@ -67,6 +68,7 @@ export default function App() {
                  <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
                  <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                 <Route path="/shared/:resultId" element={<SharedResult />} />
                </Routes>
              </div>
           </main>

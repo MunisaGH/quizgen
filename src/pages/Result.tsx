@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, XCircle, Share2, Check } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -10,7 +10,8 @@ interface ResultData {
   userId: string;
   quizId: string;
   score: number;
-  answers: any[]; // Can be number or number[] for compatibility
+  answers: any[];
+  timeSpent?: number;
   createdAt: any;
 }
 
@@ -36,6 +37,7 @@ export default function Result() {
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -66,6 +68,19 @@ export default function Result() {
     }
     fetchData();
   }, [resultId, user]);
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/shared/${resultId}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
 
   if (loading) {
     return (
@@ -135,7 +150,53 @@ export default function Result() {
                 >
                   QAYTADAN ISHLASH
                 </button>
+                <button 
+                   onClick={handleShare}
+                   className={cn(
+                     "px-6 py-3 rounded-xl font-bold text-xs transition-all w-full sm:w-auto tracking-widest uppercase flex items-center justify-center gap-2",
+                     copied ? "bg-emerald-500 text-white" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm"
+                   )}
+                 >
+                   {copied ? <><Check className="w-4 h-4" /> NUSXALANDI</> : <><Share2 className="w-4 h-4" /> ULASHISH</>}
+                 </button>
              </div>
+           </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 relative z-10 border-t border-slate-100 pt-8">
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">To'g'ri</p>
+             <p className="text-lg font-black text-green-600">
+               {quiz.questions.filter((q, i) => {
+                 const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
+                 const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+                 return userAns.length === correctAns.length && userAns.every(v => correctAns.includes(v));
+               }).length}
+             </p>
+           </div>
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Xato</p>
+             <p className="text-lg font-black text-red-600">
+               {quiz.questions.filter((q, i) => {
+                 const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
+                 const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+                 const isCorrect = userAns.length === correctAns.length && userAns.every(v => correctAns.includes(v));
+                 return userAns.length > 0 && !isCorrect;
+               }).length}
+             </p>
+           </div>
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">O'tkazilgan</p>
+             <p className="text-lg font-black text-slate-500">
+               {result.answers.filter(a => Array.isArray(a) ? a.length === 0 : a === -1).length}
+             </p>
+           </div>
+           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vaqt</p>
+             <p className="text-lg font-black text-blue-600">
+               {result.timeSpent ? formatTime(result.timeSpent) : '--'}
+             </p>
            </div>
         </div>
       </div>
@@ -154,18 +215,16 @@ export default function Result() {
 
           return (
             <div key={idx} className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex items-start gap-4 mb-4">
-                <div className="pt-0.5 shrink-0">
-                  {isCorrect ? (
-                    <CheckCircle2 className="w-6 h-6 text-green-500" />
-                  ) : (
-                    <XCircle className="w-6 h-6 text-red-500" />
-                  )}
+              <div className="flex gap-4 mb-4">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-bold mt-1",
+                  isCorrect ? "bg-green-500" : "bg-red-500"
+                )}>
+                  {idx + 1}
                 </div>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 mb-1 tracking-widest uppercase">SAVOL {idx + 1}</div>
-                  <h4 className="text-sm font-medium text-slate-900 leading-relaxed">{q.question}</h4>
-                </div>
+                <h4 className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                  {q.question}
+                </h4>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-10">

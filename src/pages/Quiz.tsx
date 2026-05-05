@@ -105,6 +105,7 @@ export default function Quiz() {
   const handleAutoSubmit = async () => {
     if (!quiz || !user || !quizId) return;
     setSubmitting(true);
+    const timeSpent = quiz.timer ? (quiz.timer * 60 - (timeLeft || 0)) : 0;
     try {
       const score = calculateScore();
       const newResult = {
@@ -112,6 +113,7 @@ export default function Quiz() {
         quizId: quizId,
         score: score,
         answers: answers,
+        timeSpent: timeSpent,
         createdAt: new Date().toISOString(),
         autoSubmitted: true
       };
@@ -251,6 +253,7 @@ export default function Quiz() {
     }
 
     setSubmitting(true);
+    const timeSpent = quiz.timer ? (quiz.timer * 60 - (timeLeft || 0)) : 0;
     try {
       const score = calculateScore();
       const newResult = {
@@ -258,10 +261,13 @@ export default function Quiz() {
         quizId: quizId,
         score: score,
         answers: answers,
+        timeSpent: timeSpent,
         createdAt: new Date().toISOString()
       };
       
       const docRef = await addDoc(collection(db, "results"), newResult);
+      // Clear progress
+      localStorage.removeItem(`quiz_progress_${quizId}`);
       navigate(`/result/${docRef.id}`);
     } catch (err) {
       console.error(err);
