@@ -6,8 +6,9 @@ import Login from './pages/Login';
 import Quiz from './pages/Quiz';
 import Result from './pages/Result';
 import History from './pages/History';
+import Profile from './pages/Profile';
 import Navbar from './components/Navbar';
-import { PlusCircle, Book, Settings, Crown, LayoutGrid } from 'lucide-react';
+import { PlusCircle, Book, User, Crown, LayoutGrid } from 'lucide-react';
 import { cn } from './lib/utils';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -35,9 +36,10 @@ function FloatingBottomNav() {
           {location.pathname === '/history' && <div className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></div>}
        </Link>
        
-       <button className="flex flex-col items-center gap-1.5 relative group">
-          <Settings className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" />
-       </button>
+       <Link to="/profile" className="flex flex-col items-center gap-1.5 relative group">
+          <User className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/profile' ? "text-blue-600" : "text-slate-400")} />
+          {location.pathname === '/profile' && <div className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></div>}
+       </Link>
        
        <button className="flex flex-col items-center gap-1.5 relative group">
           <Crown className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" />
@@ -64,6 +66,7 @@ export default function App() {
                  <Route path="/quiz/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
                  <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
                  <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                </Routes>
              </div>
           </main>
