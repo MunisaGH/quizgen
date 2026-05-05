@@ -9,7 +9,9 @@ import { doc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 interface Question {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer?: number;
+  correctAnswers?: number[];
+  isMultiple?: boolean;
 }
 
 interface QuizData {
@@ -28,7 +30,7 @@ export default function Quiz() {
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<number[][]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -55,7 +57,7 @@ export default function Quiz() {
               setCurrentIndex(savedIndex);
               if (savedTime !== undefined) setTimeLeft(savedTime);
             } else {
-              setAnswers(new Array(data.questions.length).fill(-1));
+              setAnswers(new Array(data.questions.length).fill([]).map(() => []));
             }
           }
         } else {
@@ -132,8 +134,23 @@ export default function Quiz() {
   };
 
   const handleSelectOption = (optionIndex: number) => {
+    if (!quiz) return;
+    const currentQuestion = quiz.questions[currentIndex];
     const newAnswers = [...answers];
-    newAnswers[currentIndex] = optionIndex;
+    const currentSelected = newAnswers[currentIndex] || [];
+
+    if (currentQuestion.isMultiple) {
+      // Toggle selection for multiple choice
+      if (currentSelected.includes(optionIndex)) {
+        newAnswers[currentIndex] = currentSelected.filter(i => i !== optionIndex);
+      } else {
+        newAnswers[currentIndex] = [...currentSelected, optionIndex];
+      }
+    } else {
+      // Single choice behavior
+      newAnswers[currentIndex] = [optionIndex];
+    }
+    
     setAnswers(newAnswers);
     
     // Autosave progress
@@ -207,20 +224,28 @@ export default function Quiz() {
 
   const calculateScore = () => {
     if (!quiz) return 0;
-    let correct = 0;
+    let correctCount = 0;
     quiz.questions.forEach((q, i) => {
-      if (answers[i] === q.correctAnswer) {
-        correct++;
+      const userAnswers = answers[i] || [];
+      const correctAnswers = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+      
+      // Check if user's answers exactly match correct answers (order independent)
+      const isCorrect = 
+        userAnswers.length === correctAnswers.length && 
+        userAnswers.every(val => correctAnswers.includes(val));
+        
+      if (isCorrect) {
+        correctCount++;
       }
     });
-    return Math.round((correct / quiz.questions.length) * 100);
+    return Math.round((correctCount / quiz.questions.length) * 100);
   };
 
   const submitQuiz = async () => {
     if (!quiz || !user || !quizId) return;
     
-    // Check if all answered
-    if (answers.includes(-1)) {
+    // Check if all answered (at least one choice for each)
+    if (answers.some(a => a.length === 0)) {
       alert("Iltimos, testni yakunlashdan oldin barcha savollarga javob bering.");
       return;
     }
@@ -326,42 +351,38 @@ export default function Quiz() {
               </div>
             )}
             <span className="text-[10px] md:text-xs text-blue-600 font-[800] tracking-widest uppercase flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 w-fit shrink-0">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> {answers.filter(a => a !== -1).length} / {quiz.questions.length} JAVOB BERILDI
+              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span> {answers.filter(a => a.length > 0).length} / {quiz.questions.length} JAVOB BERILDI
             </span>
           </div>
         </div>
         
         <div className="flex-1 overflow-y-auto p-6 md:p-8 relative z-10">
-          <p className="text-[10px] md:text-[11px] font-[800] text-slate-400 mb-3 uppercase tracking-widest">SAVOL {currentIndex + 1} / {quiz.questions.length}</p>
+          <p className="text-[10px] md:text-[11px] font-[800] text-slate-400 mb-3 uppercase tracking-widest flex items-center justify-between">
+            <span>SAVOL {currentIndex + 1} / {quiz.questions.length}</span>
+            {currentQuestion.isMultiple && (
+              <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">KO'P JAVOBLI</span>
+            )}
+          </p>
           <h2 className="text-base md:text-xl font-[600] mb-8 text-slate-900 leading-snug">
             {currentQuestion.question}
           </h2>
           
           <div className="grid grid-cols-1 gap-3">
             {currentQuestion.options.map((option, idx) => {
-              const hasAnswered = answers[currentIndex] !== -1;
-              const isSelected = answers[currentIndex] === idx;
-              const isCorrect = currentQuestion.correctAnswer === idx;
+              const currentSelected = answers[currentIndex] || [];
+              const isSelected = currentSelected.includes(idx);
+              const correctAnswers = currentQuestion.correctAnswers || (currentQuestion.correctAnswer !== undefined ? [currentQuestion.correctAnswer] : []);
+              const isCorrect = correctAnswers.includes(idx);
 
-              let buttonStyle = "border-slate-200 bg-white/50 hover:border-blue-300 hover:bg-white";
-              let letterStyle = "bg-slate-50 text-slate-400 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-600";
-              let textStyle = "text-slate-700 group-hover:text-slate-900";
-
-              if (hasAnswered) {
-                 if (isCorrect) {
-                    buttonStyle = "border-green-500 bg-green-50/80 shadow-sm shadow-green-100";
-                    letterStyle = "bg-green-500 text-white border-green-500";
-                    textStyle = "text-green-900 font-bold";
-                 } else if (isSelected) {
-                    buttonStyle = "border-red-400 bg-red-50/80 shadow-sm shadow-red-100";
-                    letterStyle = "bg-red-500 text-white border-red-500";
-                    textStyle = "text-red-900 font-bold";
-                 } else {
-                    buttonStyle = "border-slate-100 bg-slate-50/50 opacity-60";
-                    letterStyle = "bg-slate-100 text-slate-300 border-slate-100 cursor-default";
-                    textStyle = "text-slate-400";
-                 }
-              }
+              let buttonStyle = isSelected 
+                ? "border-blue-500 bg-blue-50/50 shadow-sm shadow-blue-100/50" 
+                : "border-slate-200 bg-white/50 hover:border-blue-300 hover:bg-white";
+              let letterStyle = isSelected
+                ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20"
+                : "bg-slate-50 text-slate-400 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-600";
+              let textStyle = isSelected 
+                ? "text-blue-900 font-[800]" 
+                : "text-slate-700 group-hover:text-slate-900";
 
               return (
                 <button
@@ -385,8 +406,8 @@ export default function Quiz() {
                      </span>
                   </div>
                   
-                  {hasAnswered && isSelected && (
-                     <CheckCircle2 className={cn("w-5 h-5 shrink-0 ml-2", isCorrect ? "text-green-500" : "text-red-500")} />
+                  {isSelected && (
+                     <CheckCircle2 className={cn("w-5 h-5 shrink-0 ml-2 animate-in zoom-in duration-300", "text-blue-500")} />
                   )}
                 </button>
               );

@@ -96,17 +96,20 @@ Savollar soni: SENSING MATN VA FOYDALANUVCHI TALABIGA QARAB TAXMINAN ${targetCou
         }
 
         prompt += `
+DIQQAT: Testda ba'zi savollarning bir nechta to'g'ri javobi bo'lishi mumkin. 
+
 Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi shart:
 {
   "questions": [
     {
       "question": "Savol matni?",
       "options": ["A variant", "B variant", "C variant", "D variant"],
-      "correctAnswer": 0
+      "correctAnswers": [0, 2],
+      "isMultiple": true
     }
   ]
 }
-correctAnswer - bu to'g'ri javobning options qatoridagi indeksi (0 dan 3 gacha). Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
+correctAnswers - bu to'g'ri javoblar indekslari massivi. Agar faqat bitta to'g'ri javob bo'lsa, massivda bitta element bo'lsin va isMultiple: false bo'lsin. Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
 
         const response = await openai.chat.completions.create({
            model: 'gpt-4o-mini',

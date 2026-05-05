@@ -10,14 +10,16 @@ interface ResultData {
   userId: string;
   quizId: string;
   score: number;
-  answers: number[];
+  answers: any[]; // Can be number or number[] for compatibility
   createdAt: any;
 }
 
 interface Question {
   question: string;
   options: string[];
-  correctAnswer: number;
+  correctAnswer?: number;
+  correctAnswers?: number[];
+  isMultiple?: boolean;
 }
 
 interface QuizData {
@@ -143,8 +145,12 @@ export default function Result() {
            Savollar tahlili
         </h3>
         {quiz.questions.map((q, idx) => {
-          const userAnswer = result.answers[idx];
-          const isCorrect = userAnswer === q.correctAnswer;
+          const userAnswerRaw = result.answers[idx];
+          const userAnswers = Array.isArray(userAnswerRaw) ? userAnswerRaw : (userAnswerRaw !== -1 ? [userAnswerRaw] : []);
+          const correctAnswers = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+          
+          const isCorrect = userAnswers.length === correctAnswers.length && 
+                           userAnswers.every(v => correctAnswers.includes(v));
 
           return (
             <div key={idx} className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -163,22 +169,22 @@ export default function Result() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-10">
-                {q.options.map((opt, oIdx) => {
-                  let optStyle = "border-slate-100 bg-slate-50 text-slate-500";
-                  let isSelected = oIdx === userAnswer;
-                  
-                  if (oIdx === q.correctAnswer) {
-                     optStyle = "border-green-400 bg-green-50/50 text-green-800 font-bold ring-1 ring-green-400/20";
-                  } else if (isSelected && !isCorrect) {
-                     optStyle = "border-red-300 bg-red-50/50 text-red-800 font-bold ring-1 ring-red-300/20";
-                  }
+                {q.options.map((opt, optIdx) => {
+                const isUserSelected = userAnswers.includes(optIdx);
+                const isActuallyCorrect = correctAnswers.includes(optIdx);
+                
+                let optStyle = "bg-slate-50 border-slate-100 text-slate-500";
+                if (isActuallyCorrect) optStyle = "bg-green-50 border-green-100 text-green-700 font-bold";
+                else if (isUserSelected && !isActuallyCorrect) optStyle = "bg-red-50 border-red-100 text-red-700 font-bold";
 
-                  return (
-                    <div key={oIdx} className={cn("px-4 py-3 border rounded-xl text-xs flex items-center gap-3 transition-colors", optStyle)}>
-                       <span className="flex-1 leading-snug">{String.fromCharCode(65 + oIdx)}. {opt}</span>
-                    </div>
-                  );
-                })}
+                return (
+                  <div key={optIdx} className={cn("p-3 rounded-xl border text-xs md:text-sm flex items-center justify-between transition-all", optStyle)}>
+                    <span>{opt}</span>
+                    {isActuallyCorrect && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                    {isUserSelected && !isActuallyCorrect && <XCircle className="w-4 h-4 text-red-600" />}
+                  </div>
+                );
+              })}
               </div>
             </div>
            );
