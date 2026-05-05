@@ -100,13 +100,34 @@ async function startServer() {
          }
       }
 
+      const { questionCount, difficulty, language } = req.body;
+
       try {
         if (!openai) {
           return res.status(500).json({ error: "OpenAI API sozlanmagan. Ilovani to'g'ri sozlash uchun OpenAI API kalit kiritilishi kerak." });
         }
 
-        const prompt = `Sen professional o'qituvchi va malakali test tuzuvchisan. Quyidagi taqdim etilgan matn asosida O'ZBEK TILIDA mantiqiy va sifatli test savollarini tuz. 
+        const languageMap: Record<string, string> = {
+          'uzbek': "O'ZBEK TILIDA",
+          'russian': "RUS TILIDA (на русском языке)",
+          'english': "INGLIZ TILIDA (in English)"
+        };
+
+        const difficultyMap: Record<string, string> = {
+          'easy': "oson va asosiy tushunchalarga oid",
+          'medium': "o'rtacha darajadagi, mantiqiy va tushunarli",
+          'hard': "murakkab, chuqur tahliliy va qiyin darajadagi"
+        };
+
+        const targetLang = languageMap[language] || "O'ZBEK TILIDA";
+        const targetDiff = difficultyMap[difficulty] || "o'rtacha darajadagi";
+        const targetCount = questionCount || "maksimal";
+
+        const prompt = `Sen professional o'qituvchi va malakali test tuzuvchisan. Quyidagi taqdim etilgan matn asosida ${targetLang} mantiqiy va sifatli test savollarini tuz. 
 Matndan eng muhim faktlarni ajratib olgin. Variantlar chalg'ituvchi va ishonchli ko'rinishi kerak.
+Qiyinlik darajasi: ${targetDiff}.
+Savollar soni: SENSING MATN VA FOYDALANUVCHI TALABIGA QARAB TAXMINAN ${targetCount} TA SAVOL TUZ.
+
 Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi shart:
 {
   "questions": [
@@ -117,7 +138,7 @@ Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi s
     }
   ]
 }
-Matn hajmiga qarab mavzuni maksimal qamrab oluvchi savollar tuz. DIQQAT: SAVOLLAR SONI BO'YICHA HECH QANDAY CHEKLOV YO'Q! Matnda qancha ma'lumot yoki tayyor test savollari bo'lsa ularning BARChASINI (hatto 200 ta bo'lsa ham) to'liq JSON ga o'giring. correctAnswer - bu to'g'ri javobning options qatoridagi indeksi (0 dan 3 gacha). Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
+Matn hajmiga qarab mavzuni maksimal qamrab oluvchi savollar tuz. correctAnswer - bu to'g'ri javobning options qatoridagi indeksi (0 dan 3 gacha). Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
 
         const response = await openai.chat.completions.create({
            model: 'gpt-4o-mini',

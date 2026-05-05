@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock } from 'lucide-react';
+import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock, HelpCircle, Globe, ListChecks } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
@@ -17,6 +17,9 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showInvalid, setShowInvalid] = useState(false);
   const [timer, setTimer] = useState<number | null>(null);
+  const [questionCount, setQuestionCount] = useState<number>(10);
+  const [difficulty, setDifficulty] = useState<string>('medium');
+  const [language, setLanguage] = useState<string>('uzbek');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -85,6 +88,9 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('questionCount', questionCount.toString());
+      formData.append('difficulty', difficulty);
+      formData.append('language', language);
 
       const response = await fetch('/api/generate-quiz', {
         method: 'POST',
@@ -130,6 +136,8 @@ export default function Home() {
         sourceFileName: file.name,
         questions: data.questions,
         timer: timer,
+        difficulty: difficulty,
+        language: language,
         createdAt: new Date().toISOString()
       };
       
@@ -252,36 +260,116 @@ export default function Home() {
           )}
 
           {file && !loading && (
-            <div className="mt-6 px-4">
-              <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" /> VAQT CHEGARASI (DAQIQA)
-              </p>
-              <div className="grid grid-cols-4 gap-2">
-                {[5, 10, 15, 30].map(m => (
+            <div className="mt-8 space-y-8 px-2">
+              {/* Question Count */}
+              <div>
+                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <ListChecks className="w-3.5 h-3.5" /> Savollar soni
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 20, 30].map(n => (
+                    <button 
+                      key={n} 
+                      onClick={() => setQuestionCount(n)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                        questionCount === n 
+                          ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100" 
+                          : "bg-white text-zinc-500 border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30"
+                      )}
+                    >
+                      {n} ta
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Difficulty */}
+              <div>
+                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <HelpCircle className="w-3.5 h-3.5" /> Qiyinlik darajasi
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'easy', label: 'Oson', color: 'green' },
+                    { id: 'medium', label: 'O\'rtacha', color: 'amber' },
+                    { id: 'hard', label: 'Qiyin', color: 'red' }
+                  ].map(d => (
+                    <button 
+                      key={d.id} 
+                      onClick={() => setDifficulty(d.id)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                        difficulty === d.id 
+                          ? `bg-zinc-900 text-white border-zinc-900 shadow-lg shadow-zinc-200` 
+                          : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50"
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language */}
+              <div>
+                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <Globe className="w-3.5 h-3.5" /> Test tili
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'uzbek', label: 'O\'zbek' },
+                    { id: 'russian', label: 'Ruscha' },
+                    { id: 'english', label: 'Inglizcha' }
+                  ].map(l => (
+                    <button 
+                      key={l.id} 
+                      onClick={() => setLanguage(l.id)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                        language === l.id 
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100" 
+                          : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
+                      )}
+                    >
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timer */}
+              <div>
+                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5" /> Vaqt chegarasi
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 30].map(m => (
+                    <button 
+                      key={m} 
+                      onClick={() => setTimer(m)}
+                      className={cn(
+                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                        timer === m 
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100" 
+                          : "bg-white text-zinc-500 border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50/30"
+                      )}
+                    >
+                      {m}m
+                    </button>
+                  ))}
                   <button 
-                    key={m} 
-                    onClick={() => setTimer(m)}
+                    onClick={() => setTimer(null)}
                     className={cn(
-                      "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                      timer === m 
-                        ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" 
-                        : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
+                      "col-span-4 py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
+                      timer === null 
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100" 
+                        : "bg-white text-zinc-500 border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50/30"
                     )}
                   >
-                    {m}m
+                    CHEKSIZ VAQT
                   </button>
-                ))}
-                <button 
-                  onClick={() => setTimer(null)}
-                  className={cn(
-                    "col-span-4 py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                    timer === null 
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200" 
-                      : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
-                  )}
-                >
-                  CHEKSIZ VAQT
-                </button>
+                </div>
               </div>
             </div>
           )}
