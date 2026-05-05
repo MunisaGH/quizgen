@@ -5,10 +5,32 @@ import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+interface Question {
+  question: string;
+  options: string[];
+  correctAnswer?: number;
+  correctAnswers?: number[];
+  isMultiple?: boolean;
+}
+
+interface QuizData {
+  title: string;
+  questions: Question[];
+}
+
+interface ResultData {
+  userId: string;
+  quizId: string;
+  score: number;
+  answers: (number | number[])[];
+  timeSpent?: number;
+  createdAt: string;
+}
+
 export default function SharedResult() {
   const { resultId } = useParams();
-  const [result, setResult] = useState<any>(null);
-  const [quiz, setQuiz] = useState<any>(null);
+  const [result, setResult] = useState<ResultData | null>(null);
+  const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -20,14 +42,14 @@ export default function SharedResult() {
         const resultSnap = await getDoc(resultRef);
         
         if (!resultSnap.exists()) throw new Error("Natija topilmadi yoki o'chirib tashlangan");
-        const rData = resultSnap.data();
+        const rData = resultSnap.data() as ResultData;
         setResult(rData);
 
         const quizRef = doc(db, "quizzes", rData.quizId);
         const quizSnap = await getDoc(quizRef);
         
         if (quizSnap.exists()) {
-           setQuiz(quizSnap.data());
+           setQuiz(quizSnap.data() as QuizData);
         } else {
            throw new Error("Test ma'lumotlari topilmadi");
         }
@@ -74,20 +96,20 @@ export default function SharedResult() {
               <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">To'g'ri</p>
                 <p className="text-2xl font-black text-emerald-600">
-                   {quiz.questions.filter((q: any, i: number) => {
+                   {quiz.questions.filter((q, i) => {
                      const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
-                     const correctAns = q.correctAnswers || [q.correctAnswer];
-                     return userAns.length === correctAns.length && userAns.every((v: any) => correctAns.includes(v));
+                     const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+                     return userAns.length === correctAns.length && userAns.every(v => correctAns.includes(v));
                    }).length}
                 </p>
               </div>
               <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
                 <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Xato</p>
                 <p className="text-2xl font-black text-rose-600">
-                   {quiz.questions.filter((q: any, i: number) => {
+                   {quiz.questions.filter((q, i) => {
                      const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
-                     const correctAns = q.correctAnswers || [q.correctAnswer];
-                     const isCorrect = userAns.length === correctAns.length && userAns.every((v: any) => correctAns.includes(v));
+                     const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+                     const isCorrect = userAns.length === correctAns.length && userAns.every(v => correctAns.includes(v));
                      return userAns.length > 0 && !isCorrect;
                    }).length}
                 </p>

@@ -10,6 +10,7 @@ import History from './pages/History';
 import Profile from './pages/Profile';
 import SharedResult from './pages/SharedResult';
 import Navbar from './components/Navbar';
+import ErrorBoundary from './components/ErrorBoundary';
 import { PlusCircle, Book, User, Crown, LayoutGrid, Moon, Sun } from 'lucide-react';
 import { cn } from './lib/utils';
 
@@ -57,34 +58,35 @@ function FloatingBottomNav() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <div className="flex flex-col h-screen overflow-hidden text-slate-900 dark:text-slate-100 font-sans relative isolate bg-white dark:bg-zinc-950 selection:bg-blue-200 selection:text-blue-900 transition-colors duration-300">
-              {/* Subtle noise/grid background */}
-              <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,var(--border-subtle)_1px,transparent_1px),linear-gradient(to_bottom,var(--border-subtle)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_60%,transparent_100%)]"></div>
-              
-              <main className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto pb-safe">
-                 <Navbar />
-                 <div className="w-full pb-24 md:pb-10">
-                   <Routes>
-                     <Route path="/login" element={<Login />} />
-                     <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                     <Route path="/quiz/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-                     <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
-                     <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                     <Route path="/shared/:resultId" element={<SharedResult />} />
-                   </Routes>
-                 </div>
-              </main>
-              
-              <FloatingBottomNav />
-            </div>
-          </BrowserRouter>
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <div className="flex flex-col h-screen overflow-hidden text-slate-900 dark:text-slate-100 font-sans relative isolate bg-white dark:bg-zinc-950 selection:bg-blue-200 selection:text-blue-900 transition-colors duration-300">
+                <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,var(--border-subtle)_1px,transparent_1px),linear-gradient(to_bottom,var(--border-subtle)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_60%,transparent_100%)]"></div>
+                
+                <main className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto pb-safe">
+                   <Navbar />
+                   <div className="w-full pb-24 md:pb-10">
+                     <Routes>
+                       <Route path="/login" element={<Login />} />
+                       <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                       <Route path="/quiz/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+                       <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
+                       <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                       <Route path="/shared/:resultId" element={<SharedResult />} />
+                     </Routes>
+                   </div>
+                </main>
+                
+                <FloatingBottomNav />
+              </div>
+            </BrowserRouter>
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

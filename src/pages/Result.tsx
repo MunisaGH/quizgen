@@ -11,9 +11,9 @@ interface ResultData {
   userId: string;
   quizId: string;
   score: number;
-  answers: any[];
+  answers: (number | number[])[];
   timeSpent?: number;
-  createdAt: any;
+  createdAt: string;
 }
 
 interface Question {
