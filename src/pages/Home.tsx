@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/UIContext';
 import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock, HelpCircle, Globe, ListChecks } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -12,10 +13,8 @@ export default function Home() {
   const [view, setView] = useState<ViewMode>('menu');
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [showInvalid, setShowInvalid] = useState(false);
   const [timer, setTimer] = useState<number | null>(null);
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>('medium');
@@ -26,6 +25,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -40,12 +40,9 @@ export default function Home() {
   const handleFileSelection = (selectedFile: File) => {
     if (isValidFile(selectedFile)) {
       setFile(selectedFile);
-      setError('');
-      setShowInvalid(false);
+      showToast("Fayl tanlandi", "info");
     } else {
       setFile(null);
-      setShowInvalid(true);
-      setTimeout(() => setShowInvalid(false), 3000);
     }
   };
 
@@ -66,19 +63,23 @@ export default function Home() {
 
   const isValidFile = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
-       setError("Fayl hajmi juda katta (maksimal 10MB). Iltimos, kichikroq fayldan foydalaning.");
+       showToast("Fayl hajmi juda katta (maksimal 10MB)", "error");
        return false;
     }
-    return file.type === 'application/pdf' || 
-           file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
-           file.name.endsWith('.pdf') || 
-           file.name.endsWith('.docx');
+    const isDoc = file.type === 'application/pdf' || 
+            file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+            file.name.endsWith('.pdf') || 
+            file.name.endsWith('.docx');
+    if (!isDoc) showToast("Faqat PDF yoki DOCX fayllarini yuklang", "error");
+    return isDoc;
   };
 
   const generateQuiz = async () => {
-    if (!file || !user) return;
+    if (inputMode === 'file' && !file) { showToast("Iltimos, fayl yuklang", "error"); return; }
+    if (inputMode === 'text' && !inputText) { showToast("Iltimos, matn kiriting", "error"); return; }
+    if (inputMode === 'topic' && !inputTopic) { showToast("Iltimos, mavzu kiriting", "error"); return; }
+    
     setLoading(true);
-    setError('');
     setUploadProgress(0);
 
     const progressInterval = setInterval(() => {
@@ -96,555 +97,342 @@ export default function Home() {
         formData.append('text', inputText);
       } else if (inputMode === 'topic' && inputTopic) {
         formData.append('topic', inputTopic);
-      } else {
-        throw new Error("Iltimos, kerakli ma'lumotni kiriting.");
       }
-      
+
       formData.append('questionCount', questionCount.toString());
       formData.append('difficulty', difficulty);
       formData.append('language', language);
-      formData.append('mode', inputMode);
 
-      const response = await fetch('/api/generate-quiz', {
+      const res = await fetch('http://localhost:5000/api/generate', {
         method: 'POST',
         body: formData,
-        // credentials: 'omit' to ensure no cross-origin weirdness on first-party context,
-        // though typically it's same-origin so defaults apply.
       });
 
-      const rawText = await response.text();
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Serverda xatolik yuz berdi");
+      }
+
+      const data = await res.json();
       
-      // Cookie check HTML or Vite dev server proxy page checks
-      if (rawText.includes('<title>Cookie check</title>') || rawText.includes('__SECURE-aistudio') || rawText.includes('<div id="root">')) {
-        throw new Error("Brauzer xavfsizlik tizimi so'rovni to'xtatdi. Ilovani to'liq ishlashi uchun tepa o'ng burchakdagi 'Open in New Tab' (Yangi oynada ochish) tugmasi orqali alohida oynada oching.");
-      }
-
-      let data;
-      try {
-         data = JSON.parse(rawText);
-      } catch(parseErr) {
-         console.error("Raw response length:", rawText.length, "content:", rawText.substring(0, 50));
-         // Agar Vercel dan 404 HTML qaytgan bo'lsa
-         if (rawText.trim().startsWith('<') || response.status === 404) {
-            throw new Error("API Server ishlamayapti. Vercel kabi statik xosting server (Express/Node.js) qismini ishga tushira olmaydi. Node.js backend uchun Vercel'dan ko'ra Render.com yoki Railway.app'dan foydalanish tavsiya etiladi.");
-         }
-         throw new Error("Tizim fayl formatini o'qiy olmadi yoki hujjat juda katta.");
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || "Test yaratishda xatolik yuz berdi");
-      }
-
-      if (!data.questions || !Array.isArray(data.questions)) {
-        throw new Error("Yaroqsiz test formati olindi");
-      }
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      await new Promise(r => setTimeout(r, 400)); 
-
-      const newQuiz = {
-        userId: user.uid,
-        title: inputMode === 'file' ? file!.name.replace(/\.[^/.]+$/, "") : (inputMode === 'topic' ? inputTopic : "Matn asosida test"),
-        sourceFileName: inputMode === 'file' ? file!.name : null,
-        inputMode: inputMode,
+      const docRef = await addDoc(collection(db, "quizzes"), {
+        userId: user?.uid,
+        title: inputMode === 'topic' ? inputTopic : (file ? file.name : "Matn asosida test"),
         questions: data.questions,
         timer: timer,
-        difficulty: difficulty,
-        language: language,
         createdAt: new Date().toISOString()
-      };
-      
-      const docRef = await addDoc(collection(db, "quizzes"), newQuiz);
-      navigate(`/quiz/${docRef.id}`);
+      });
 
+      setUploadProgress(100);
+      showToast("Test muvaffaqiyatli yaratildi!", "success");
+      setTimeout(() => navigate(`/quiz/${docRef.id}`), 500);
     } catch (err: any) {
-      clearInterval(progressInterval);
-      setUploadProgress(0);
       console.error(err);
-      setError(err.message || 'Kutilmagan xatolik yuz berdi');
+      showToast(err.message, "error");
     } finally {
+      clearInterval(progressInterval);
       setLoading(false);
     }
   };
 
-  if (view === 'upload') {
-    return (
-      <div className="max-w-2xl mx-auto w-full pt-8 pb-20 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <button 
-          onClick={() => setView('menu')}
-          className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 mb-8 font-medium transition-colors group"
-        >
-          <div className="p-2 border border-zinc-200 rounded-full group-hover:bg-zinc-100 transition-colors">
-             <ArrowLeft className="w-4 h-4" />
-          </div>
-          <span>Orqaga</span>
-        </button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-[800] tracking-tight mb-3 text-zinc-900">
-            Test yaratish
-          </h1>
-          <p className="text-zinc-500 text-sm leading-relaxed max-w-md">
-            O'zingizga qulay usulni tanlang va interaktiv testga ega bo'ling.
-          </p>
-        </div>
-
-        <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] mb-6 gap-1 border border-zinc-200/50">
-          {[
-            { id: 'file', label: 'Fayl yuklash', icon: UploadCloud },
-            { id: 'text', label: 'Matn kiritish', icon: FileText },
-            { id: 'topic', label: 'Mavzu bo\'yicha', icon: MessageSquare }
-          ].map(m => (
-            <button
-              key={m.id}
-              onClick={() => { setInputMode(m.id as any); setFile(null); setInputText(''); setInputTopic(''); setError(''); }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-[800] transition-all duration-300",
-                inputMode === m.id 
-                  ? "bg-white text-zinc-900 shadow-sm border border-zinc-200/50" 
-                  : "text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200/50"
-              )}
-            >
-              <m.icon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{m.label}</span>
-            </button>
-          ))}
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-4 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-zinc-200/60">
-          {inputMode === 'file' ? (
-            <div 
-              className={cn(
-                "border-2 border-dashed rounded-[1.5rem] p-12 flex flex-col items-center justify-center transition-all duration-300 cursor-pointer text-center relative overflow-hidden",
-                dragActive ? "border-indigo-500 bg-indigo-50/50 scale-[1.01]" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-50",
-                file && !showInvalid ? "border-green-400 bg-green-50/30" : "",
-                showInvalid ? "border-red-400 bg-red-50/50" : "",
-                loading ? "opacity-70 pointer-events-none" : ""
-              )}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => !file && fileInputRef.current?.click()}
-            >
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
-                onChange={handleFileChange}
-              />
-
-              {!file ? (
-                <>
-                  <div className={cn(
-                    "w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-500 ease-out shadow-sm",
-                    dragActive ? "bg-indigo-600 text-white scale-110 shadow-indigo-200" : "bg-white text-zinc-900 border border-zinc-200 shadow-zinc-100"
-                  )}>
-                    {showInvalid ? (
-                      <XCircle className="w-8 h-8 text-red-500" />
-                    ) : (
-                      <UploadCloud className="w-8 h-8" />
-                    )}
-                  </div>
-                  <p className="text-lg font-bold text-zinc-800 mb-1">
-                    {showInvalid ? "Kechirasiz, yaroqsiz format" : (dragActive ? "Faylni shu yerda qo'yib yuboring" : "Tanlash uchun bosing yoki tashlang")}
-                  </p>
-                  <p className="text-sm text-zinc-400 font-medium">
-                    PDF yoki Word hujjatlari (Max. 10MB)
-                  </p>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center w-full relative z-10 animate-in fade-in zoom-in-95 duration-300">
-                  <div className="w-20 h-20 bg-green-500 text-white shadow-xl shadow-green-500/20 rounded-full flex items-center justify-center mb-5">
-                    <FileCheck2 className="w-10 h-10" />
-                  </div>
-                  <p className="text-lg font-bold text-zinc-900 break-words w-full px-4 mb-1">{file.name}</p>
-                  <p className="text-sm text-zinc-400 font-medium">{(file.size / 1024).toFixed(1)} KB</p>
-                  
-                  {loading ? (
-                     <div className="w-full max-w-sm mx-auto mt-8">
-                       <div className="flex justify-between text-xs font-bold text-zinc-500 mb-2.5 uppercase tracking-widest">
-                         <span className="text-indigo-600">
-                           {uploadProgress < 30 ? "Yuklanmoqda..." : 
-                            uploadProgress < 70 ? "Matn o'qilmoqda..." : "Generatsiya..."}
-                         </span>
-                         <span>{Math.round(uploadProgress)}%</span>
-                       </div>
-                       <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-indigo-600 transition-all duration-300 ease-out relative rounded-full" 
-                            style={{ width: `${uploadProgress}%` }}
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]"></div>
-                          </div>
-                       </div>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                      className="mt-6 text-xs uppercase tracking-widest font-bold text-red-500 hover:text-white hover:bg-red-500 border border-red-200 transition-all px-6 py-2.5 rounded-full"
-                    >
-                      Boshqa fayl tanlash
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : inputMode === 'text' ? (
-            <div className="p-2">
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Matnni shu yerga kiriting (nusxalab qo'ying)..."
-                className="w-full h-48 p-6 rounded-[1.5rem] bg-zinc-50 border border-zinc-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-zinc-800 font-medium text-sm leading-relaxed resize-none"
-                disabled={loading}
-              />
-              <div className="mt-4 flex items-center justify-between px-2">
-                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Matn hajmi: {inputText.length} belgi</p>
-                {inputText.length > 0 && !loading && (
-                   <button onClick={() => setInputText('')} className="text-[10px] text-red-500 font-bold uppercase tracking-widest hover:underline">Tozalash</button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="p-2 py-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={inputTopic}
-                  onChange={(e) => setInputTopic(e.target.value)}
-                  placeholder="Mavzuni kiriting (masalan: Fotosintez jarayoni)..."
-                  className="w-full p-6 pl-14 rounded-2xl bg-zinc-50 border border-zinc-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-zinc-800 font-bold text-lg"
-                  disabled={loading}
-                />
-                <MessageSquare className="w-6 h-6 text-zinc-400 absolute left-5 top-1/2 -translate-y-1/2" />
-              </div>
-              <p className="mt-4 text-xs text-zinc-400 font-medium text-center px-4">
-                AI o'z bilimidan foydalanib ushbu mavzu bo'yicha mukammal test savollarini tuzib beradi.
-              </p>
-            </div>
-          )}
-
-            </div>
-          )}
-
-          {((inputMode === 'file' && file) || (inputMode === 'text' && inputText.length > 10) || (inputMode === 'topic' && inputTopic.length > 2)) && !loading && (
-            <div className="mt-8 space-y-8 px-2">
-              {/* Question Count */}
-              <div>
-                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
-                  <ListChecks className="w-3.5 h-3.5" /> Savollar soni
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {[5, 10, 20, 30].map(n => (
-                    <button 
-                      key={n} 
-                      onClick={() => setQuestionCount(n)}
-                      className={cn(
-                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                        questionCount === n 
-                          ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100" 
-                          : "bg-white text-zinc-500 border-zinc-200 hover:border-blue-300 hover:bg-blue-50/30"
-                      )}
-                    >
-                      {n} ta
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Difficulty */}
-              <div>
-                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
-                  <HelpCircle className="w-3.5 h-3.5" /> Qiyinlik darajasi
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'easy', label: 'Oson', color: 'green' },
-                    { id: 'medium', label: 'O\'rtacha', color: 'amber' },
-                    { id: 'hard', label: 'Qiyin', color: 'red' }
-                  ].map(d => (
-                    <button 
-                      key={d.id} 
-                      onClick={() => setDifficulty(d.id)}
-                      className={cn(
-                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                        difficulty === d.id 
-                          ? `bg-zinc-900 text-white border-zinc-900 shadow-lg shadow-zinc-200` 
-                          : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-400 hover:bg-zinc-50"
-                      )}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Language */}
-              <div>
-                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
-                  <Globe className="w-3.5 h-3.5" /> Test tili
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'uzbek', label: 'O\'zbek' },
-                    { id: 'russian', label: 'Ruscha' },
-                    { id: 'english', label: 'Inglizcha' }
-                  ].map(l => (
-                    <button 
-                      key={l.id} 
-                      onClick={() => setLanguage(l.id)}
-                      className={cn(
-                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                        language === l.id 
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100" 
-                          : "bg-white text-zinc-500 border-zinc-200 hover:border-indigo-300 hover:bg-indigo-50/30"
-                      )}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Timer */}
-              <div>
-                <p className="text-[11px] font-[800] text-zinc-400 mb-3 uppercase tracking-widest flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" /> Vaqt chegarasi
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {[5, 10, 15, 30].map(m => (
-                    <button 
-                      key={m} 
-                      onClick={() => setTimer(m)}
-                      className={cn(
-                        "py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                        timer === m 
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100" 
-                          : "bg-white text-zinc-500 border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                      )}
-                    >
-                      {m}m
-                    </button>
-                  ))}
-                  <button 
-                    onClick={() => setTimer(null)}
-                    className={cn(
-                      "col-span-4 py-2.5 rounded-xl text-xs font-[800] border transition-all duration-200", 
-                      timer === null 
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-100" 
-                        : "bg-white text-zinc-500 border-zinc-200 hover:border-emerald-300 hover:bg-emerald-50/30"
-                    )}
-                  >
-                    CHEKSIZ VAQT
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-4 p-4 rounded-2xl bg-red-50 text-red-800 text-sm border border-red-100/50 font-medium text-center flex items-center justify-center gap-2">
-              <Info className="w-4 h-4" /> {error}
-            </div>
-          )}
-
-          <div className="mt-4">
-            <button
-              onClick={generateQuiz}
-              disabled={loading || (inputMode === 'file' && !file) || (inputMode === 'text' && !inputText) || (inputMode === 'topic' && !inputTopic)}
-              className={cn(
-                "w-full py-4 px-6 rounded-2xl font-bold text-base transition-all duration-300 flex items-center justify-center gap-3",
-                loading || (inputMode === 'file' && !file) || (inputMode === 'text' && !inputText) || (inputMode === 'topic' && !inputTopic)
-                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/20 hover:-translate-y-1 active:translate-y-0"
-              )}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  JARAYON BAJARILMOQDA...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  TEST YARATISHNI BOSHLASH
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (view === 'guide') {
     return (
-      <div className="max-w-2xl mx-auto w-full pt-8 pb-20 px-4 md:px-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <button 
-          onClick={() => setView('menu')}
-          className="flex items-center gap-2 text-zinc-400 hover:text-zinc-900 mb-8 font-medium transition-colors group"
-        >
-          <div className="p-2 border border-zinc-200 rounded-full group-hover:bg-zinc-100 transition-colors">
-             <ArrowLeft className="w-4 h-4" />
-          </div>
-          <span>Orqaga</span>
-        </button>
-
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-[800] tracking-tight mb-3 text-zinc-900">
-            Fayl formati qoidalari
-          </h1>
-          <p className="text-zinc-500 text-sm leading-relaxed max-w-md">
-            Testlar muvaffaqiyatli import qilinishi uchun hujjatlaringiz quyidagi tartibda yozilgan bo‘lishi lozim.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-[2rem] p-6 sm:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.02)] border border-zinc-200/60 text-zinc-800">
-           
-           <div className="space-y-8 text-sm leading-relaxed">
-             
-             <ul className="grid grid-cols-1 md:grid-cols-3 gap-4">
-               <li className="bg-zinc-50 rounded-2xl p-5 border border-zinc-100">
-                  <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-zinc-200 flex items-center justify-center text-lg font-bold mb-3">1</div>
-                  <strong className="block text-zinc-900 mb-1">Savolni ajrating</strong>
-                  <span className="text-zinc-500">Har bir savol o'rtasini <code className="bg-zinc-200 px-1.5 py-0.5 rounded text-zinc-800 font-mono text-xs">++++</code> belgisi bilan bo'ling.</span>
-               </li>
-               <li className="bg-zinc-50 rounded-2xl p-5 border border-zinc-100">
-                  <div className="w-8 h-8 rounded-full bg-white shadow-sm border border-zinc-200 flex items-center justify-center text-lg font-bold mb-3">2</div>
-                  <strong className="block text-zinc-900 mb-1">Javoblarni ajrating</strong>
-                  <span className="text-zinc-500">Tugmalar uchun variantlarni <code className="bg-zinc-200 px-1.5 py-0.5 rounded text-zinc-800 font-mono text-xs">====</code> orqali ajrating.</span>
-               </li>
-               <li className="bg-zinc-50 rounded-2xl p-5 border border-zinc-100">
-                  <div className="w-8 h-8 rounded-full bg-green-100 shadow-sm border border-green-200 flex items-center justify-center text-green-700 font-bold mb-3">3</div>
-                  <strong className="block text-zinc-900 mb-1">To'g'ri javob</strong>
-                  <span className="text-zinc-500">To'g'ri variantning boshqiga <code className="bg-green-200 px-1.5 py-0.5 rounded text-green-800 font-mono text-xs">#</code> belgisini qo'ying.</span>
-               </li>
-             </ul>
-
-             <div>
-               <h3 className="font-bold mb-2 flex items-center gap-2"><FileText className="w-4 h-4 text-zinc-400" /> Hujjat ichidagi yozuv namunasi:</h3>
-               <div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-xs overflow-x-auto shadow-2xl relative">
-                 <div className="absolute top-0 left-0 w-full h-8 bg-white/5 border-b border-white/5 flex items-center px-4 gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
-                 </div>
-                 <pre className="mt-6 leading-[1.8]">
-<span className="text-indigo-400 font-bold">Asakada birinchi marta qachon avtomobil ishlab chiqarilgan?</span>
-<span className="text-zinc-500">====</span>
-1994-yil
-<span className="text-zinc-500">====</span>
-<span className="text-green-400">#1996-yil iyul</span>
-<span className="text-zinc-500">====</span>
-1998-yil
-<span className="text-zinc-500">++++</span>
-<span className="text-indigo-400 font-bold">Internetning asoschisi kim?</span>
-<span className="text-zinc-500">====</span>
-<span className="text-green-400">#Tim Berners-Lee</span>
-<span className="text-zinc-500">====</span>
-Bill Gates
-<span className="text-zinc-500">====</span>
-Steve Jobs
-                 </pre>
+      <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+         <button onClick={() => setView('menu')} className="mb-8 flex items-center gap-2 text-muted hover:text-blue-600 transition-colors font-bold text-sm bg-card border border-subtle px-4 py-2 rounded-full shadow-sm w-fit">
+            <ArrowLeft className="w-4 h-4" /> ORQAGA
+         </button>
+         
+         <div className="bg-card border border-subtle rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/20 dark:shadow-none">
+            <div className="flex items-center gap-4 mb-8">
+               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center">
+                  <Info className="w-6 h-6" />
                </div>
-             </div>
-
-             <button
-               onClick={() => setView('upload')}
-               className="w-full mt-4 py-4 px-6 rounded-2xl font-bold text-base bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-3 group"
-             >
-               FAYLNI YUKLASHGA O'TISH
-               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-             </button>
-           </div>
-        </div>
+               <h2 className="text-3xl font-black text-main tracking-tight">Qanday foydalanish kerak?</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-6">
+                  <div className="flex gap-4">
+                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0 mt-1">1</div>
+                     <div>
+                        <h4 className="font-black text-main mb-1">Manbani tanlang</h4>
+                        <p className="text-sm text-muted leading-relaxed font-medium">Hujjat yuklang (PDF/DOCX), matn kiriting yoki shunchaki mavzu yozing.</p>
+                     </div>
+                  </div>
+                  <div className="flex gap-4">
+                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0 mt-1">2</div>
+                     <div>
+                        <h4 className="font-black text-main mb-1">Sozlamalarni o'rnating</h4>
+                        <p className="text-sm text-muted leading-relaxed font-medium">Savollar soni, qiyinlik darajasi va taymerni belgilang.</p>
+                     </div>
+                  </div>
+               </div>
+               <div className="space-y-6">
+                  <div className="flex gap-4">
+                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0 mt-1">3</div>
+                     <div>
+                        <h4 className="font-black text-main mb-1">AI Test Yaratadi</h4>
+                        <p className="text-sm text-muted leading-relaxed font-medium">Bizning aqlli AI manbani tahlil qilib, yuqori sifatli testlar tuzib beradi.</p>
+                     </div>
+                  </div>
+                  <div className="flex gap-4">
+                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-black shrink-0 mt-1">4</div>
+                     <div>
+                        <h4 className="font-black text-main mb-1">Natijani ulashing</h4>
+                        <p className="text-sm text-muted leading-relaxed font-medium">Testni yechib bo'lgach, natijangizni do'stlaringizga link orqali yuboring.</p>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
       </div>
     );
   }
 
-  // Menu View (Dashboard) Bento Layout
   return (
-    <div className="max-w-4xl mx-auto w-full pt-6 md:pt-10 pb-20 px-4 md:px-6 animate-in fade-in zoom-in-[0.98] duration-500">
-       
-       <header className="mb-8 md:mb-10">
-         <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-zinc-900">Nima yaratamiz bugun?</h1>
-         <p className="text-zinc-500 mt-2 text-sm md:text-base font-medium">Bitta hujjat orqali katta imkoniyatlar dunyosini kashf qiling.</p>
-       </header>
-       
-       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
-         
-         {/* Main Action - Upload (Bento Large) */}
-         <button 
-           onClick={() => setView('upload')}
-           className="md:col-span-2 group relative overflow-hidden rounded-[2rem] bg-blue-600 p-8 md:p-10 text-left text-white shadow-[0_15px_30px_rgba(37,99,235,0.2)] transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] flex flex-col justify-end min-h-[300px]"
-         >
-            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-30 group-hover:-translate-y-2 group-hover:translate-x-2 transition-all duration-500">
-               <UploadCloud size={140} strokeWidth={1} />
+    <div className="max-w-5xl mx-auto px-6 pt-10 pb-20">
+      {view === 'menu' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="text-center mb-16 relative">
+            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 px-4 py-2 rounded-full border border-blue-100 dark:border-blue-800/30 mb-6">
+               <Sparkles className="w-4 h-4 text-blue-600 animate-pulse" />
+               <span className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">Sun'iy intellektga asoslangan</span>
             </div>
-            
-            <div className="relative z-10">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-[10px] uppercase tracking-widest font-bold backdrop-blur-md mb-6 border border-white/20">
-                 <Sparkles className="w-3 h-3 text-white" />
-                 Eng ko'p ishlatilgan
-              </span>
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">Hujjatdan test tuzish</h2>
-              <p className="text-blue-100 max-w-sm font-medium text-sm leading-relaxed">
-                PDF yoki DOCX faylingizni yuklang. Sun'iy intellekt uni darhol interaktiv savol-javob oynasiga aylantiradi.
-              </p>
-            </div>
-         </button>
+            <h1 className="text-4xl md:text-6xl font-black text-main tracking-tighter mb-4 leading-tight">
+              Bilimingizni <span className="text-blue-600">AI yordamida</span> <br />tekshirib ko'ring
+            </h1>
+            <p className="text-muted text-lg max-w-2xl mx-auto font-medium">
+              Har qanday hujjat yoki mavzu bo'yicha soniyalar ichida mukammal testlar yarating.
+            </p>
+          </div>
 
-         {/* Format Guide (Bento Small Right) */}
-         <button 
-           onClick={() => setView('guide')}
-           className="col-span-1 rounded-[2rem] bg-indigo-50 border border-indigo-100 p-8 text-left transition-all duration-300 hover:bg-indigo-100 hover:scale-[1.02] active:scale-[0.98] flex flex-col min-h-[200px] md:min-h-[300px]"
-         >
-            <div className="w-12 h-12 bg-indigo-500 text-white rounded-2xl flex items-center justify-center mb-auto shadow-lg shadow-indigo-500/20">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div className="mt-8">
-              <h4 className="font-[800] text-xl tracking-tight text-indigo-950 mb-2">Qoidalar & Namuna</h4>
-              <p className="text-sm text-indigo-700/80 font-medium leading-relaxed">
-                Tizim savollaringizni to'g'ri o'qishi uchun qanday formatda matn yozish kerakligini bilib oling.
-              </p>
-            </div>
-         </button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+             <div onClick={() => { setInputMode('file'); setView('upload'); }} className="bg-card p-8 rounded-[2.5rem] border border-subtle hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/10 transition-all cursor-pointer group flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-[1.5rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <UploadCloud className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-main mb-2">Fayl orqali</h3>
+                <p className="text-sm text-muted font-medium">PDF yoki Word hujjatlaridan test yaratish.</p>
+             </div>
+             <div onClick={() => { setInputMode('text'); setView('upload'); }} className="bg-card p-8 rounded-[2.5rem] border border-subtle hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all cursor-pointer group flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 rounded-[1.5rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <FileText className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-main mb-2">Matn orqali</h3>
+                <p className="text-sm text-muted font-medium">Matn nusxasini kiritish orqali test yaratish.</p>
+             </div>
+             <div onClick={() => { setInputMode('topic'); setView('upload'); }} className="bg-card p-8 rounded-[2.5rem] border border-subtle hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all cursor-pointer group flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-[1.5rem] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                   <MessageSquare className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black text-main mb-2">Mavzu orqali</h3>
+                <p className="text-sm text-muted font-medium">AI'ga shunchaki mavzu bering va u test tuzadi.</p>
+             </div>
+          </div>
 
-         {/* Features Coming Soon */}
-         <div className="col-span-1 border border-zinc-200 bg-white rounded-[2rem] p-6 text-left flex items-start gap-4 cursor-not-allowed opacity-60">
-            <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
-               <Layers className="w-5 h-5 text-zinc-500" />
-            </div>
-            <div>
-               <h4 className="font-bold text-zinc-900 mb-1 leading-tight">Yodlash kartochkalari</h4>
-               <p className="text-xs text-zinc-500 font-medium">Tez orada qo'shiladi</p>
-            </div>
-         </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 border-t border-subtle pt-12">
+             <button onClick={() => setView('guide')} className="flex items-center gap-2 text-muted hover:text-main font-black text-xs uppercase tracking-widest transition-colors">
+                <HelpCircle className="w-4 h-4" /> Qanday ishlaydi?
+             </button>
+             <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full hidden sm:block"></div>
+             <p className="text-muted text-xs font-bold uppercase tracking-widest">LOYIHA REMIX-AI TOMONIDAN TAQDIM ETILDI</p>
+          </div>
+        </div>
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto">
+          <button onClick={() => setView('menu')} className="mb-8 flex items-center gap-2 text-muted hover:text-blue-600 transition-colors font-black text-[10px] tracking-widest bg-card border border-subtle px-4 py-2 rounded-full shadow-sm w-fit uppercase">
+            <ArrowLeft className="w-3.5 h-3.5" /> ORQAGA QAYTISH
+          </button>
 
-         <div className="col-span-1 border border-zinc-200 bg-white rounded-[2rem] p-6 text-left flex items-start gap-4 cursor-not-allowed opacity-60">
-            <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
-               <Presentation className="w-5 h-5 text-zinc-500" />
+          <div className="bg-card border border-subtle rounded-[2.5rem] shadow-xl overflow-hidden">
+            <div className="p-8 md:p-10 border-b border-subtle">
+               <h2 className="text-2xl font-black text-main tracking-tight mb-2">Test sozlamalari</h2>
+               <p className="text-sm text-muted font-medium">Savollar AI tomonidan mukammal tahrirlanadi.</p>
             </div>
-            <div>
-               <h4 className="font-bold text-zinc-900 mb-1 leading-tight">Slaydlarga o'girish</h4>
-               <p className="text-xs text-zinc-500 font-medium">Tez orada qo'shiladi</p>
-            </div>
-         </div>
 
-         <div className="col-span-1 border border-zinc-200 bg-white rounded-[2rem] p-6 text-left flex items-start gap-4 cursor-not-allowed opacity-60">
-            <div className="w-10 h-10 bg-zinc-100 rounded-xl flex items-center justify-center shrink-0">
-               <MessageSquare className="w-5 h-5 text-zinc-500" />
-            </div>
-            <div>
-               <h4 className="font-bold text-zinc-900 mb-1 leading-tight">Mavzudan test (AI)</h4>
-               <p className="text-xs text-zinc-500 font-medium">Tez orada qo'shiladi</p>
-            </div>
-         </div>
+            <div className="p-8 md:p-10 space-y-8">
+               {/* Input Section */}
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                     <Layers className="w-3.5 h-3.5" /> Tanlangan manba
+                  </label>
+                  
+                  {inputMode === 'file' && (
+                    <div 
+                      onDragOver={handleDrag}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={cn(
+                        "border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300",
+                        dragActive ? "border-blue-500 bg-blue-50/50" : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 hover:border-blue-400"
+                      )}
+                    >
+                      <input ref={fileInputRef} type="file" onChange={handleFileChange} className="hidden" accept=".pdf,.docx" />
+                      {file ? (
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-in zoom-in duration-300">
+                             <FileCheck2 className="w-8 h-8" />
+                          </div>
+                          <p className="text-sm font-black text-main mb-1 truncate max-w-[250px]">{file.name}</p>
+                          <p className="text-[10px] text-muted font-bold">{(file.size / (1024 * 1024)).toFixed(2)} MB • Fayl tayyor</p>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 text-zinc-400 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-50 transition-colors">
+                             <UploadCloud className="w-8 h-8" />
+                          </div>
+                          <p className="text-sm font-black text-main mb-1">Faylni yuklang</p>
+                          <p className="text-[10px] text-muted font-bold uppercase tracking-widest">PDF yoki DOCX (Maks. 10MB)</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-       </div>
+                  {inputMode === 'text' && (
+                    <textarea 
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      placeholder="Matnni shu yerga kiriting..."
+                      className="w-full h-48 bg-zinc-50 dark:bg-zinc-900/50 border border-subtle rounded-[1.5rem] p-6 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none text-main"
+                    />
+                  )}
+
+                  {inputMode === 'topic' && (
+                    <div className="relative group">
+                       <input 
+                         type="text"
+                         value={inputTopic}
+                         onChange={(e) => setInputTopic(e.target.value)}
+                         placeholder="Masalan: O'zbekiston tarixi, Astronomiya, Python asoslari..."
+                         className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-subtle rounded-2xl px-6 py-4 text-sm font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-main"
+                       />
+                       <Sparkles className="absolute right-4 top-4 w-4 h-4 text-blue-500/40 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                  )}
+               </div>
+
+               {/* Settings Grid */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                        <Clock className="w-3.5 h-3.5" /> Taymer (minut)
+                     </label>
+                     <div className="grid grid-cols-4 gap-2">
+                        {[5, 10, 20, null].map((t) => (
+                           <button
+                             key={t === null ? 'none' : t}
+                             onClick={() => setTimer(t)}
+                             className={cn(
+                               "py-2.5 rounded-xl text-xs font-black transition-all border shrink-0",
+                               timer === t 
+                                ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20" 
+                                : "bg-zinc-50 dark:bg-zinc-900/50 border-subtle text-muted hover:border-blue-300"
+                             )}
+                           >
+                             {t === null ? '∞' : t}
+                           </button>
+                        ))}
+                     </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                        <ListChecks className="w-3.5 h-3.5" /> Savollar soni
+                     </label>
+                     <div className="flex items-center gap-4">
+                        <input 
+                          type="range" min="5" max="30" step="5"
+                          value={questionCount}
+                          onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                          className="flex-1 accent-blue-600 h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                        />
+                        <span className="w-10 text-sm font-black text-main text-center bg-zinc-50 dark:bg-zinc-900/50 py-1 rounded-lg border border-subtle">
+                          {questionCount}
+                        </span>
+                     </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                        <Presentation className="w-3.5 h-3.5" /> Qiyinlik darajasi
+                     </label>
+                     <div className="flex gap-2">
+                        {['easy', 'medium', 'hard'].map((d) => (
+                           <button
+                             key={d}
+                             onClick={() => setDifficulty(d)}
+                             className={cn(
+                               "flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all border uppercase tracking-widest",
+                               difficulty === d 
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20" 
+                                : "bg-zinc-50 dark:bg-zinc-900/50 border-subtle text-muted hover:border-indigo-300"
+                             )}
+                           >
+                             {d === 'easy' ? 'Oson' : d === 'medium' ? 'O\'rta' : 'Qiyin'}
+                           </button>
+                        ))}
+                     </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                        <Globe className="w-3.5 h-3.5" /> Test tili
+                     </label>
+                     <select 
+                       value={language}
+                       onChange={(e) => setLanguage(e.target.value)}
+                       className="w-full bg-zinc-50 dark:bg-zinc-900/50 border border-subtle rounded-xl px-4 py-2.5 text-xs font-black outline-none focus:border-blue-500 transition-all uppercase tracking-widest text-main"
+                     >
+                       <option value="uzbek">O'zbekcha</option>
+                       <option value="english">English</option>
+                       <option value="russian">Русский</option>
+                     </select>
+                  </div>
+               </div>
+            </div>
+
+            <div className="p-8 md:p-10 bg-zinc-50 dark:bg-zinc-900/30 border-t border-subtle">
+               <button
+                 onClick={generateQuiz}
+                 disabled={loading}
+                 className={cn(
+                   "w-full py-4 rounded-[1.5rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all duration-500",
+                   loading 
+                    ? "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed" 
+                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/30 hover:scale-[1.02] active:scale-95"
+                 )}
+               >
+                 {loading ? (
+                   <>
+                     <Loader2 className="w-5 h-5 animate-spin" />
+                     {uploadProgress < 100 ? `YUKLANMOQDA ${Math.round(uploadProgress)}%` : 'AI TAHLIL QILMOQDA...'}
+                   </>
+                 ) : (
+                   <>
+                     TESTNI YARATISH <ArrowRight className="w-5 h-5" />
+                   </>
+                 )}
+               </button>
+               {loading && (
+                  <div className="mt-6 w-full h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                     <div 
+                       className="h-full bg-blue-600 transition-all duration-300 ease-out"
+                       style={{ width: `${uploadProgress}%` }}
+                     ></div>
+                  </div>
+               )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+function Sparkles({ className }: { className?: string }) {
+  return (
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
   );
 }

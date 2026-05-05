@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Loader2, CheckCircle2, XCircle, Award, Clock } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, Award, ListChecks, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -46,29 +46,34 @@ export default function SharedResult() {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
-  if (loading) return <div className="flex justify-center items-center h-screen bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>;
-  if (error || !result || !quiz) return <div className="text-center mt-12 bg-white p-8 rounded-2xl shadow-sm max-w-md mx-auto border border-slate-100"><h2 className="text-xl font-bold text-red-600 mb-4">{error}</h2><Link to="/login" className="text-blue-600 font-bold">Tizimga kirish</Link></div>;
+  if (loading) return <div className="flex flex-col items-center justify-center h-screen gap-4 bg-white dark:bg-zinc-950"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /><p className="text-[10px] font-black text-muted uppercase tracking-widest">Natija yuklanmoqda...</p></div>;
+  if (error || !result || !quiz) return <div className="text-center mt-20 bg-card p-12 rounded-[2.5rem] border border-subtle max-w-md mx-auto shadow-xl"><XCircle className="w-16 h-16 text-rose-500 mx-auto mb-6" /><h2 className="text-xl font-black text-main mb-6 tracking-tight">{error}</h2><Link to="/login" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest">Tizimga kirish</Link></div>;
+
+  const isPassing = result.score >= 50;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20 pt-10 px-4 md:px-0">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-10">
-           <div className="inline-flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm mb-6">
+    <div className="min-h-screen bg-white dark:bg-zinc-950 transition-colors duration-300 pb-24 pt-12 px-4 md:px-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+           <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30 px-5 py-2 rounded-full shadow-sm mb-8">
              <Award className="w-4 h-4 text-amber-500" />
-             <span className="text-xs font-black text-slate-600 uppercase tracking-widest">Ommaviy Natija</span>
+             <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">Ommaviy Natija</span>
            </div>
-           <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight mb-2">{quiz.title}</h1>
-           <p className="text-slate-500 font-medium">Ushbu natija foydalanuvchi tomonidan ulashilgan</p>
+           <h1 className="text-3xl md:text-5xl font-black text-main tracking-tighter mb-4 leading-tight">{quiz.title}</h1>
+           <p className="text-muted font-bold">Ushbu natija foydalanuvchi tomonidan ulashilgan</p>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] p-10 shadow-xl shadow-slate-200/50 border border-white mb-12 text-center">
-           <div className="text-5xl md:text-7xl font-black text-blue-600 tracking-tighter mb-4">{result.score}%</div>
-           <p className="text-lg font-bold text-slate-800 mb-8">{result.score >= 50 ? 'Muvaffaqiyatli topshirildi! 🎉' : 'Natija yaxshi emas 📚'}</p>
+        <div className="bg-card rounded-[3rem] p-10 md:p-16 shadow-2xl border border-subtle mb-12 text-center relative overflow-hidden group">
+           <div className="absolute top-0 right-0 -mr-24 -mt-24 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-600/10 transition-all duration-700"></div>
+           <div className="text-6xl md:text-8xl font-black text-blue-600 tracking-tighter mb-6">{result.score}%</div>
+           <p className={cn("text-xl md:text-2xl font-black mb-12 tracking-tight", isPassing ? "text-emerald-600" : "text-rose-600")}>
+             {isPassing ? 'Muvaffaqiyatli topshirildi! 🎉' : 'Natija yaxshi emas 📚'}
+           </p>
            
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-100 pt-8">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">To'g'ri</p>
-                <p className="text-lg font-bold text-green-600">
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-subtle pt-12">
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">To'g'ri</p>
+                <p className="text-2xl font-black text-emerald-600">
                    {quiz.questions.filter((q: any, i: number) => {
                      const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
                      const correctAns = q.correctAnswers || [q.correctAnswer];
@@ -76,9 +81,9 @@ export default function SharedResult() {
                    }).length}
                 </p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Xato</p>
-                <p className="text-lg font-bold text-red-600">
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Xato</p>
+                <p className="text-2xl font-black text-rose-600">
                    {quiz.questions.filter((q: any, i: number) => {
                      const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
                      const correctAns = q.correctAnswers || [q.correctAnswer];
@@ -87,23 +92,30 @@ export default function SharedResult() {
                    }).length}
                 </p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sana</p>
-                <p className="text-sm font-bold text-slate-700 mt-1">{new Date(result.createdAt).toLocaleDateString()}</p>
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Sana</p>
+                <p className="text-sm font-black text-main mt-1">{new Date(result.createdAt).toLocaleDateString()}</p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Vaqt</p>
-                <p className="text-sm font-bold text-blue-600 mt-1">{result.timeSpent ? formatTime(result.timeSpent) : '--'}</p>
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-2xl border border-subtle">
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Vaqt</p>
+                <p className="text-sm font-black text-blue-600 mt-1">{result.timeSpent ? formatTime(result.timeSpent) : '--'}</p>
               </div>
            </div>
         </div>
 
-        <div className="bg-blue-600 rounded-[2rem] p-8 text-white text-center shadow-xl shadow-blue-500/20">
-           <h3 className="text-xl font-bold mb-3">Siz ham o'z testingizni yarating!</h3>
-           <p className="text-blue-100 mb-6 text-sm">Hujjat yuklang yoki mavzu bering, AI sizga test tuzib beradi.</p>
-           <Link to="/login" className="inline-block bg-white text-blue-600 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-50 transition-colors">
-              BEPUL BOSHLASH
-           </Link>
+        <div className="bg-zinc-900 dark:bg-zinc-900/80 rounded-[3rem] p-10 md:p-14 text-white text-center shadow-2xl shadow-blue-500/10 relative overflow-hidden group">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-blue-600/30 transition-all duration-700"></div>
+           <div className="relative z-10">
+              <div className="inline-flex items-center gap-2 bg-blue-600/20 border border-blue-500/30 px-4 py-2 rounded-full mb-6">
+                 <Sparkles className="w-4 h-4 text-blue-400" />
+                 <span className="text-[10px] font-black uppercase tracking-widest">Sizning navbatingiz</span>
+              </div>
+              <h3 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter leading-tight">Siz ham o'z testingizni yarating!</h3>
+              <p className="text-zinc-400 mb-10 text-base md:text-lg max-w-xl mx-auto font-medium">Hujjat yuklang yoki shunchaki mavzu bering, bizning aqlli AI sizga soniyalar ichida mukammal testlar tuzib beradi.</p>
+              <Link to="/login" className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all hover:scale-[1.02] active:scale-95">
+                 BEPUL BOSHLASH
+              </Link>
+           </div>
         </div>
       </div>
     </div>

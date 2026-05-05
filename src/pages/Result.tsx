@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, ArrowLeft, CheckCircle2, XCircle, Share2, Check } from 'lucide-react';
+import { useToast } from '../contexts/UIContext';
+import { Loader2, ArrowLeft, CheckCircle2, XCircle, Share2, Check, Award, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
@@ -32,6 +33,7 @@ export default function Result() {
   const { resultId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   
   const [result, setResult] = useState<ResultData | null>(null);
   const [quiz, setQuiz] = useState<QuizData | null>(null);
@@ -62,6 +64,7 @@ export default function Result() {
         }
       } catch (err: any) {
         setError(err.message);
+        showToast(err.message, "error");
       } finally {
         setLoading(false);
       }
@@ -73,6 +76,7 @@ export default function Result() {
     const url = `${window.location.origin}/shared/${resultId}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
+    showToast("Link nusxalandi!", "success");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -82,19 +86,14 @@ export default function Result() {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  if (loading) return <div className="flex flex-col items-center justify-center h-screen gap-4 bg-card"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /><p className="text-[10px] font-black text-muted uppercase tracking-widest">Natijangiz hisoblanmoqda...</p></div>;
 
   if (error || !result || !quiz) {
     return (
-      <div className="text-center mt-12 bg-white p-8 rounded-2xl shadow-sm">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">{error}</h2>
-        <button onClick={() => navigate('/')} className="text-blue-600 hover:underline">Bosh sahifaga qaytish</button>
+      <div className="max-w-md mx-auto mt-20 text-center bg-card p-12 rounded-[2.5rem] border border-subtle">
+        <XCircle className="w-16 h-16 text-rose-500 mx-auto mb-6" />
+        <h2 className="text-2xl font-black text-main mb-4 tracking-tight">{error || "Xatolik yuz berdi"}</h2>
+        <button onClick={() => navigate('/')} className="text-blue-600 font-black text-xs uppercase tracking-widest hover:underline">Bosh sahifaga qaytish</button>
       </div>
     );
   }
@@ -102,29 +101,35 @@ export default function Result() {
   const isPassing = result.score >= 50;
 
   return (
-    <div className="max-w-3xl mx-auto w-full pb-24 px-4 md:px-6 pt-6">
-      <Link to="/" className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 mb-6 transition-all font-medium text-sm bg-white border border-slate-200 px-4 py-2 rounded-full shadow-sm">
+    <div className="max-w-4xl mx-auto w-full pb-24 px-4 md:px-6 pt-10">
+      <Link to="/" className="inline-flex items-center gap-2 text-muted hover:text-blue-600 mb-8 transition-all font-black text-[10px] uppercase tracking-widest bg-card border border-subtle px-5 py-2.5 rounded-full shadow-sm">
         <ArrowLeft className="w-4 h-4" /> Bosh sahifaga qaytish
       </Link>
 
-      <div className="bg-white rounded-[2rem] p-6 md:p-10 shadow-sm border border-slate-200 mb-8 text-center relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl pointer-events-none z-0"></div>
-        <h1 className="text-xl md:text-2xl font-bold text-slate-800 mb-1 relative z-10">{quiz.title}</h1>
-        <p className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest mb-8 relative z-10">Test Natijalari</p>
+      <div className="bg-card rounded-[3rem] p-8 md:p-16 shadow-2xl border border-subtle mb-10 text-center relative overflow-hidden group">
+        <div className="absolute top-0 right-0 -mr-24 -mt-24 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-600/10 transition-all duration-700"></div>
+        <div className="absolute bottom-0 left-0 -ml-24 -mb-24 w-64 h-64 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none group-hover:bg-emerald-600/10 transition-all duration-700"></div>
+        
+        <div className="inline-flex items-center gap-2 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 rounded-full border border-subtle mb-8">
+           <Award className="w-4 h-4 text-amber-500" />
+           <span className="text-[10px] font-black text-muted uppercase tracking-[0.2em]">Sizning natijangiz</span>
+        </div>
+        
+        <h1 className="text-2xl md:text-4xl font-black text-main mb-12 tracking-tight leading-tight">{quiz.title}</h1>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10 relative z-10">
-           <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center shrink-0">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-16 relative z-10">
+           <div className="relative w-40 h-40 md:w-56 md:h-56 flex items-center justify-center shrink-0">
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                 <path
-                  className="text-slate-100"
-                  strokeWidth="3"
+                  className="text-zinc-100 dark:text-zinc-900"
+                  strokeWidth="3.5"
                   stroke="currentColor"
                   fill="none"
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
                 <path
-                  className={isPassing ? "text-green-500" : "text-red-500"}
-                  strokeWidth="3"
+                  className={cn("transition-all duration-1000 ease-out", isPassing ? "text-emerald-500" : "text-rose-500")}
+                  strokeWidth="3.5"
                   strokeDasharray={`${result.score}, 100`}
                   strokeLinecap="round"
                   stroke="currentColor"
@@ -133,28 +138,29 @@ export default function Result() {
                 />
               </svg>
               <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tighter">{result.score}%</span>
+                <span className="text-4xl md:text-6xl font-black text-main tracking-tighter">{result.score}%</span>
               </div>
            </div>
+           
            <div className="text-center sm:text-left">
-             <p className="text-xl md:text-2xl font-bold tracking-tight text-slate-900 mb-2">
-               {isPassing ? 'Barakalla! 🎉' : "Ko'proq shug'ullaning! 📚"}
+             <p className={cn("text-2xl md:text-3xl font-black tracking-tight mb-4", isPassing ? "text-emerald-600" : "text-rose-600")}>
+               {isPassing ? 'Barakalla! 🎉' : "Ko'proq o'qing! 📚"}
              </p>
-             <p className="text-sm text-slate-500 font-medium leading-relaxed max-w-xs">
-               Ushbu testdan {result.score}% natija qayd etdingiz. Umumiy savollar: {quiz.questions.length} ta.
+             <p className="text-sm md:text-base text-muted font-bold leading-relaxed max-w-xs mb-8">
+               Siz jami {quiz.questions.length} ta savoldan {Math.round((result.score / 100) * quiz.questions.length)} tasiga to'g'ri javob berdingiz.
              </p>
-             <div className="mt-6 flex flex-col sm:flex-row gap-3">
+             <div className="flex flex-col sm:flex-row gap-3">
                 <button 
                   onClick={() => navigate(`/quiz/${result.quizId}`)}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 w-full sm:w-auto tracking-widest uppercase"
+                  className="px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-xs hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 w-full sm:w-auto tracking-widest uppercase active:scale-95"
                 >
                   QAYTADAN ISHLASH
                 </button>
                 <button 
                    onClick={handleShare}
                    className={cn(
-                     "px-6 py-3 rounded-xl font-bold text-xs transition-all w-full sm:w-auto tracking-widest uppercase flex items-center justify-center gap-2",
-                     copied ? "bg-emerald-500 text-white" : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm"
+                     "px-8 py-3.5 rounded-2xl font-black text-xs transition-all w-full sm:w-auto tracking-widest uppercase flex items-center justify-center gap-2 active:scale-95 border",
+                     copied ? "bg-emerald-600 border-emerald-600 text-white shadow-xl shadow-emerald-600/20" : "bg-card text-main border-subtle hover:bg-zinc-50 dark:hover:bg-zinc-900"
                    )}
                  >
                    {copied ? <><Check className="w-4 h-4" /> NUSXALANDI</> : <><Share2 className="w-4 h-4" /> ULASHISH</>}
@@ -164,10 +170,10 @@ export default function Result() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8 relative z-10 border-t border-slate-100 pt-8">
-           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">To'g'ri</p>
-             <p className="text-lg font-black text-green-600">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 border-t border-subtle pt-12">
+           <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[1.5rem] border border-subtle group hover:border-emerald-500 transition-colors">
+             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2">To'g'ri</p>
+             <p className="text-2xl font-black text-emerald-600">
                {quiz.questions.filter((q, i) => {
                  const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
                  const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
@@ -175,9 +181,9 @@ export default function Result() {
                }).length}
              </p>
            </div>
-           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Xato</p>
-             <p className="text-lg font-black text-red-600">
+           <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[1.5rem] border border-subtle group hover:border-rose-500 transition-colors">
+             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2">Xato</p>
+             <p className="text-2xl font-black text-rose-600">
                {quiz.questions.filter((q, i) => {
                  const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
                  const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
@@ -186,64 +192,64 @@ export default function Result() {
                }).length}
              </p>
            </div>
-           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">O'tkazilgan</p>
-             <p className="text-lg font-black text-slate-500">
+           <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[1.5rem] border border-subtle group hover:border-zinc-400 transition-colors">
+             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2">O'tkazilgan</p>
+             <p className="text-2xl font-black text-main">
                {result.answers.filter(a => Array.isArray(a) ? a.length === 0 : a === -1).length}
              </p>
            </div>
-           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vaqt</p>
-             <p className="text-lg font-black text-blue-600">
+           <div className="bg-zinc-50 dark:bg-zinc-900/50 p-6 rounded-[1.5rem] border border-subtle group hover:border-blue-500 transition-colors">
+             <p className="text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2">Vaqt</p>
+             <p className="text-2xl font-black text-blue-600">
                {result.timeSpent ? formatTime(result.timeSpent) : '--'}
              </p>
            </div>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-3 mb-6 uppercase tracking-tight flex items-center gap-2">
-           Savollar tahlili
+      <div className="space-y-6">
+        <h3 className="text-sm font-black text-main border-b border-subtle pb-4 mb-8 uppercase tracking-[0.2em] flex items-center gap-3">
+           <ListChecks className="w-5 h-5 text-blue-600" /> Savollar tahlili
         </h3>
         {quiz.questions.map((q, idx) => {
           const userAnswerRaw = result.answers[idx];
           const userAnswers = Array.isArray(userAnswerRaw) ? userAnswerRaw : (userAnswerRaw !== -1 ? [userAnswerRaw] : []);
-          const correctAnswers = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+          const correctAnswersArr = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
           
-          const isCorrect = userAnswers.length === correctAnswers.length && 
-                           userAnswers.every(v => correctAnswers.includes(v));
+          const isCorrect = userAnswers.length === correctAnswersArr.length && 
+                           userAnswers.every(v => correctAnswersArr.includes(v));
 
           return (
-            <div key={idx} className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm">
-              <div className="flex gap-4 mb-4">
+            <div key={idx} className="bg-card p-6 md:p-8 rounded-[2rem] border border-subtle shadow-sm hover:shadow-xl hover:shadow-slate-200/5 dark:hover:shadow-none transition-all duration-500">
+              <div className="flex gap-5 mb-8">
                 <div className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white text-[10px] font-bold mt-1",
-                  isCorrect ? "bg-green-500" : "bg-red-500"
+                  "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white text-[10px] font-black mt-1 shadow-lg",
+                  isCorrect ? "bg-emerald-500 shadow-emerald-500/20" : "bg-rose-500 shadow-rose-500/20"
                 )}>
                   {idx + 1}
                 </div>
-                <h4 className="text-sm md:text-base font-bold text-slate-800 leading-tight">
+                <h4 className="text-base md:text-lg font-black text-main leading-snug">
                   {q.question}
                 </h4>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-12">
                 {q.options.map((opt, optIdx) => {
-                const isUserSelected = userAnswers.includes(optIdx);
-                const isActuallyCorrect = correctAnswers.includes(optIdx);
-                
-                let optStyle = "bg-slate-50 border-slate-100 text-slate-500";
-                if (isActuallyCorrect) optStyle = "bg-green-50 border-green-100 text-green-700 font-bold";
-                else if (isUserSelected && !isActuallyCorrect) optStyle = "bg-red-50 border-red-100 text-red-700 font-bold";
+                  const isUserSelected = userAnswers.includes(optIdx);
+                  const isActuallyCorrect = correctAnswersArr.includes(optIdx);
+                  
+                  let optStyle = "bg-zinc-50 dark:bg-zinc-900/50 border-subtle text-muted";
+                  if (isActuallyCorrect) optStyle = "bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500 text-emerald-700 dark:text-emerald-400 font-bold shadow-sm";
+                  else if (isUserSelected && !isActuallyCorrect) optStyle = "bg-rose-50 dark:bg-rose-900/10 border-rose-500 text-rose-700 dark:text-rose-400 font-bold shadow-sm";
 
-                return (
-                  <div key={optIdx} className={cn("p-3 rounded-xl border text-xs md:text-sm flex items-center justify-between transition-all", optStyle)}>
-                    <span>{opt}</span>
-                    {isActuallyCorrect && <CheckCircle2 className="w-4 h-4 text-green-600" />}
-                    {isUserSelected && !isActuallyCorrect && <XCircle className="w-4 h-4 text-red-600" />}
-                  </div>
-                );
-              })}
+                  return (
+                    <div key={optIdx} className={cn("p-4 rounded-2xl border text-xs md:text-sm flex items-center justify-between transition-all duration-300", optStyle)}>
+                      <span className="leading-snug">{opt}</span>
+                      {isActuallyCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                      {isUserSelected && !isActuallyCorrect && <XCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+                    </div>
+                  );
+                })}
               </div>
             </div>
            );

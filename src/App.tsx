@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, ToastProvider, useTheme } from './contexts/UIContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Quiz from './pages/Quiz';
@@ -9,12 +10,12 @@ import History from './pages/History';
 import Profile from './pages/Profile';
 import SharedResult from './pages/SharedResult';
 import Navbar from './components/Navbar';
-import { PlusCircle, Book, User, Crown, LayoutGrid } from 'lucide-react';
+import { PlusCircle, Book, User, Crown, LayoutGrid, Moon, Sun } from 'lucide-react';
 import { cn } from './lib/utils';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="h-screen w-full flex items-center justify-center text-zinc-500 font-medium">Yuklanmoqda...</div>;
+  if (loading) return <div className="h-screen w-full flex items-center justify-center text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-950">Yuklanmoqda...</div>;
   if (!user) return <Navigate to="/login" />;
   return <>{children}</>;
 }
@@ -22,60 +23,68 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function FloatingBottomNav() {
   const location = useLocation();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   
   if (!user || location.pathname === '/login') return null;
 
   return (
-    <div className="md:hidden fixed bottom-6 left-6 right-6 bg-white/90 backdrop-blur-xl border border-slate-200 px-8 py-3.5 rounded-full flex justify-between items-center z-50 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)]">
+    <div className="md:hidden fixed bottom-6 left-6 right-6 glass-panel border border-slate-200 dark:border-zinc-800 px-8 py-3.5 rounded-full flex justify-between items-center z-50 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.1)]">
        <Link to="/" className="flex flex-col items-center gap-1.5 relative group">
-          <LayoutGrid className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/' ? "text-blue-600" : "text-slate-400")} />
+          <LayoutGrid className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/' ? "text-blue-600" : "text-slate-400 dark:text-zinc-500")} />
           {location.pathname === '/' && <div className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></div>}
        </Link>
        
        <Link to="/history" className="flex flex-col items-center gap-1.5 relative group">
-          <Book className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/history' ? "text-blue-600" : "text-slate-400")} />
+          <Book className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/history' ? "text-blue-600" : "text-slate-400 dark:text-zinc-500")} />
           {location.pathname === '/history' && <div className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></div>}
        </Link>
+
+       <button onClick={toggleTheme} className="flex flex-col items-center gap-1.5 relative group">
+          {theme === 'light' ? (
+            <Moon className="w-5 h-5 text-slate-400 hover:text-blue-600 transition-colors" />
+          ) : (
+            <Sun className="w-5 h-5 text-amber-500 transition-colors" />
+          )}
+       </button>
        
        <Link to="/profile" className="flex flex-col items-center gap-1.5 relative group">
-          <User className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/profile' ? "text-blue-600" : "text-slate-400")} />
+          <User className={cn("w-5 h-5 transition-all duration-300", location.pathname === '/profile' ? "text-blue-600" : "text-slate-400 dark:text-zinc-500")} />
           {location.pathname === '/profile' && <div className="absolute -bottom-2 w-1 h-1 bg-blue-600 rounded-full"></div>}
        </Link>
-       
-       <button className="flex flex-col items-center gap-1.5 relative group">
-          <Crown className="w-5 h-5 text-slate-400 hover:text-slate-600 transition-colors" />
-       </button>
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="flex flex-col h-screen overflow-hidden text-slate-900 font-sans relative isolate bg-slate-50 selection:bg-blue-200 selection:text-blue-900">
-          {/* Subtle noise/grid background */}
-          <div className="absolute inset-0 -z-10 h-full w-full bg-slate-50 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_60%,transparent_100%)]"></div>
-          
-          {/* Main Content Area */}
-          <main className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto pb-safe">
-             <Navbar />
-             <div className="w-full pb-24 md:pb-10">
-               <Routes>
-                 <Route path="/login" element={<Login />} />
-                 <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                 <Route path="/quiz/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-                 <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
-                 <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                 <Route path="/shared/:resultId" element={<SharedResult />} />
-               </Routes>
-             </div>
-          </main>
-          
-          <FloatingBottomNav />
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <div className="flex flex-col h-screen overflow-hidden text-slate-900 dark:text-slate-100 font-sans relative isolate bg-white dark:bg-zinc-950 selection:bg-blue-200 selection:text-blue-900 transition-colors duration-300">
+              {/* Subtle noise/grid background */}
+              <div className="absolute inset-0 -z-10 h-full w-full bg-[linear-gradient(to_right,var(--border-subtle)_1px,transparent_1px),linear-gradient(to_bottom,var(--border-subtle)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,#000_60%,transparent_100%)]"></div>
+              
+              <main className="flex flex-col flex-1 overflow-x-hidden overflow-y-auto pb-safe">
+                 <Navbar />
+                 <div className="w-full pb-24 md:pb-10">
+                   <Routes>
+                     <Route path="/login" element={<Login />} />
+                     <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                     <Route path="/quiz/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+                     <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
+                     <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                     <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                     <Route path="/shared/:resultId" element={<SharedResult />} />
+                   </Routes>
+                 </div>
+              </main>
+              
+              <FloatingBottomNav />
+            </div>
+          </BrowserRouter>
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
