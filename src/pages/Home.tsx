@@ -235,6 +235,10 @@ export default function Home() {
                 <HelpCircle className="w-4 h-4" /> Qanday ishlaydi?
              </button>
              <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full hidden sm:block"></div>
+             <a href="https://t.me/talabaga_yordam_pro" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted hover:text-blue-500 font-black text-xs uppercase tracking-widest transition-colors">
+                <MessageSquare className="w-4 h-4" /> Telegram Bot
+             </a>
+             <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full hidden sm:block"></div>
              <p className="text-muted text-xs font-bold uppercase tracking-widest">LOYIHA REMIX-AI TOMONIDAN TAQDIM ETILDI</p>
           </div>
         </div>

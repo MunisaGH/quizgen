@@ -1,0 +1,1134 @@
+{
+  "7687090906_1776795361": {
+    "test_id": "7687090906_1776795361",
+    "user_id": 7687090906,
+    "title": "123",
+    "language": "uz",
+    "original_file": "D:\\python\\tg_bot\\data\\uploads\\7687090906\\1776795342_Dasturlash_DAK.docx",
+    "question_count": 50,
+    "chunk_size": 25,
+    "section_count": 2,
+    "order": "sequential",
+    "timer_type": "per_question",
+    "timer_seconds": 30,
+    "questions": [
+      {
+        "text": "Pythonda matnni ekranga chiqarish uchun qaysi funksiya ishlatiladi?",
+        "options": {
+          "A": "For",
+          "B": "print()",
+          "C": "Int",
+          "D": "and, or, not"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda qanday o‘zgaruvchi nomi to‘g‘ri?",
+        "options": {
+          "A": "Sqrt(x)",
+          "B": "If,elif,else",
+          "C": "==",
+          "D": "my_name"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=5 // 2 print(x)",
+        "options": {
+          "A": "Voris sinf",
+          "B": "Int",
+          "C": "Shart noto‘g‘ri bo‘lishi",
+          "D": "2"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=10%3 print(x)",
+        "options": {
+          "A": "Hodisa",
+          "B": "3",
+          "C": "kiritish",
+          "D": "__init__(self, a, b, c)"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=8/4 print(x)",
+        "options": {
+          "A": "class MyClass:",
+          "B": "2.2",
+          "C": "B va C",
+          "D": "Abstraksiyalash"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=7//3 print(x)",
+        "options": {
+          "A": "14",
+          "B": "Siklni to‘xtatadi",
+          "C": "Or",
+          "D": "2"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=9%5+2**2 print(x)",
+        "options": {
+          "A": "B va C",
+          "B": "8",
+          "C": "bool",
+          "D": "1"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda qay bir ma'lumot turi boolean hisoblanadi?",
+        "options": {
+          "A": "Qism dasturlar",
+          "B": "True, False",
+          "C": "ASSEMBLER",
+          "D": "To’g’ri javob yo’q"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 5 + 3 * 2 print(x)",
+        "options": {
+          "A": "A",
+          "B": "Int",
+          "C": "11",
+          "D": "True, False"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 10 - 4 // 2 print(x)",
+        "options": {
+          "A": "Ob’yekt",
+          "B": "7",
+          "C": "Hodisa",
+          "D": "For"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = (8 + 4) * 2 - 6 print(x)",
+        "options": {
+          "A": "Abstraksiyalash",
+          "B": "16",
+          "C": "Or",
+          "D": "__init__(self, a, b, c=6)"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x=15 % 4 + 2 ** 3 print(x)",
+        "options": {
+          "A": "True yoki False",
+          "B": "print",
+          "C": "13",
+          "D": "Ro’yhatlarda"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x=25 // 4 * 3 + 2 print(x)",
+        "options": {
+          "A": "21",
+          "B": "Abstraksiyalash",
+          "C": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "D": "class"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 7 + 3 * (10 // 5)print(x)",
+        "options": {
+          "A": "14",
+          "B": "'HelloWorld'",
+          "C": "bu belgi qanday vazifani bajaradi",
+          "D": "class 'bool'"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda list qanday belgilar bilan aniqlanadi?",
+        "options": {
+          "A": "2.2",
+          "B": "class MyClass:",
+          "C": "Ro’yhatlarda",
+          "D": "[ ]"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda tuple qanday belgilar bilan aniqlanadi?",
+        "options": {
+          "A": "Qism dasturlar",
+          "B": "()",
+          "C": "and, or, not",
+          "D": "If"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda o‘zgaruvchi qiymatini qanday o‘chirasiz?",
+        "options": {
+          "A": "my_name",
+          "B": "del x",
+          "C": "8",
+          "D": "Ro’yhatlarda"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? print(type(3.14))",
+        "options": {
+          "A": "ASSEMBLER",
+          "B": "Ota klassga",
+          "C": "Sqrt(x)",
+          "D": "class 'float'"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda tuple o‘zgarmas ekanligini bildiruvchi element qaysi?",
+        "options": {
+          "A": "fabs(x)",
+          "B": "and, or, not",
+          "C": "14",
+          "D": "()"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi funksiya uzunlikni hisoblaydi?",
+        "options": {
+          "A": "==",
+          "B": "7",
+          "C": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "D": "Len()"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = [1, 2, 3] print(x[1])",
+        "options": {
+          "A": "2",
+          "B": "Funksiya",
+          "C": "Sort",
+          "D": "Sqrt(x)"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda shartni tekshirish uchun qaysi kalit so‘z ishlatiladi?",
+        "options": {
+          "A": "Rasm",
+          "B": "append()",
+          "C": "If",
+          "D": "Abstraksiyalash"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda 'Hello' + 'World' natijasi qanday?",
+        "options": {
+          "A": "True yoki False",
+          "B": "'HelloWorld'",
+          "C": "and, or, not",
+          "D": "bool"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi operator \"teng\"ligini tekshiradi?",
+        "options": {
+          "A": "==",
+          "B": "13",
+          "C": "Qism dasturlar",
+          "D": "append()"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Python-da doiraviy tsiklni belgilovchi operator qaysi?",
+        "options": {
+          "A": "Ob’yektga yunaltirilgan dasturlash",
+          "B": "Voris sinf",
+          "C": "For",
+          "D": "Matn"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kod nima qaytaradi? x = \"123\" print(int(x) + 2)",
+        "options": {
+          "A": "print()",
+          "B": "124",
+          "C": "takrorlanuvchi algoritmlar",
+          "D": "Hususiyat"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda bo‘sh listni qanday hosil qilamiz?",
+        "options": {
+          "A": "False, True",
+          "B": "class",
+          "C": "Ob’yekt",
+          "D": "[ ]"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi metod ro‘yxatga yangi element qo‘shadi? Pythonda 5 % 2 natijasida qanday natija chiqadi?",
+        "options": {
+          "A": "Funksiya",
+          "B": "append()",
+          "C": "class 'bool'",
+          "D": "bool"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kalit so’zlarning qaysi birida sinf yaratiladi",
+        "options": {
+          "A": "8",
+          "B": "1",
+          "C": "14",
+          "D": "Len()"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Sinf konstruktori qanday ko’rinishda tasvirlanadi",
+        "options": {
+          "A": "append()",
+          "B": "var",
+          "C": "class",
+          "D": "2.2"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi dastur qismida voris sinf kamandasini ko’rsating class A(B,C): pass",
+        "options": {
+          "A": "Object",
+          "B": "True yoki False",
+          "C": "A",
+          "D": "Sort"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Yangi yaratilgan voris sinf nomini ko’rsating class A(B,C): pass",
+        "options": {
+          "A": "A",
+          "B": "input, print",
+          "C": "Funksiya",
+          "D": "__init__()"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Voris sinfning qaysi sinfdan voris olingan qatorni ko’rsating class A(B,C)",
+        "options": {
+          "A": "Sqrt(x)",
+          "B": "B va C",
+          "C": "1",
+          "D": "input, print"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning kengaytmasi bu",
+        "options": {
+          "A": "Hususiyat",
+          "B": "()",
+          "C": "Ob’yektga yunaltirilgan dasturlash",
+          "D": "A"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning asosiy paradigmalari bu",
+        "options": {
+          "A": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "B": "=",
+          "C": "for va while",
+          "D": "Gido Van Rossum"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning eng asosiy tushunchalaridan biri bu …",
+        "options": {
+          "A": "def myFunction():",
+          "B": "()",
+          "C": "type",
+          "D": "Ob’yekt"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning ahamiyatsiz hususiyatlarini chiqarib tashlash muhumlarni ajratish usullari",
+        "options": {
+          "A": "bu belgi qanday vazifani bajaradi?",
+          "B": "Abstraksiyalash",
+          "C": "Sinf",
+          "D": "“5”"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qandaydir metodlarni va hususiyatlarni ob’yektlarning to’plami",
+        "options": {
+          "A": "Sinf",
+          "B": "“5”",
+          "C": "Metod",
+          "D": "while"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning holatining o’zgarishi bu…",
+        "options": {
+          "A": "Hodisa",
+          "B": "Qism dasturlar",
+          "C": "del x",
+          "D": "Al Xorazmiy"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning bajarish mumkin bo’lgan harakatlar to’plami bu …",
+        "options": {
+          "A": "“5”",
+          "B": "[ ]",
+          "C": "Metod",
+          "D": "{}"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning asosiy xaraktiristkasi bu …",
+        "options": {
+          "A": "Sort",
+          "B": "0,1,2,3,4",
+          "C": "Hususiyat",
+          "D": "Romb"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda barcha ob’yektlar qaysi kalit so’zdan kelib chiqadi",
+        "options": {
+          "A": "Object",
+          "B": "1",
+          "C": "o‘zgarmaslar",
+          "D": "3"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda konstruktorlarni e’lon qilish ...",
+        "options": {
+          "A": "__init__()",
+          "B": "Chiziqli, takrorlanuvchi, tarmoqlanuvchi",
+          "C": "True yoki False",
+          "D": "124"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythoda sinf konstruktorlarnito’g’ri yozilgan qatorni ko’rsating",
+        "options": {
+          "A": "__init__(self, a, b, c)",
+          "B": "Set",
+          "C": "Qism dasturlar",
+          "D": "Rasm"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Sinf konstruktori to’g’ri ko’rsatilgan qatorni ko’rsating",
+        "options": {
+          "A": "print",
+          "B": "=",
+          "C": "0,1,2,3,4",
+          "D": "__init__(self, a, b, c=6)"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi nom A(class a(b)) sinfiga mos kelmaydi",
+        "options": {
+          "A": "__init__()",
+          "B": "__init__(self, a, b, c=6)",
+          "C": "16",
+          "D": "Voris sinf"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi qatorda sinfning tipi aniqlanmagan A(classA(B))",
+        "options": {
+          "A": "del x",
+          "B": "Int",
+          "C": "Ost sinf qismi",
+          "D": "Or"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi nom b sinfiga mos kelmaydi class a (b)",
+        "options": {
+          "A": "Romb",
+          "B": "Siklni to‘xtatadi",
+          "C": "Ota klassga",
+          "D": "="
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "While siklining qaysi qismi siklni to‘xtatishga javobgar?",
+        "options": {
+          "A": "takrorlanuvchi algoritmlar",
+          "B": "ASSEMBLER",
+          "C": "Shart noto‘g‘ri bo‘lishi",
+          "D": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Python dasturida satr chiqarish uchun qaysi funksiya ishlatiladi?",
+        "options": {
+          "A": "2.2",
+          "B": "True, False",
+          "C": "and, or, not",
+          "D": "print()"
+        },
+        "correct": "D",
+        "explanation": ""
+      }
+    ],
+    "created_at": "2026-04-21T18:16:01.261402+00:00"
+  },
+  "7330091077_1776795877": {
+    "test_id": "7330091077_1776795877",
+    "user_id": 7330091077,
+    "title": "qwerty",
+    "language": "uz",
+    "original_file": "D:\\python\\tg_bot\\data\\uploads\\7330091077\\1776795848_Dasturlash_DAK.docx",
+    "question_count": 50,
+    "chunk_size": 25,
+    "section_count": 2,
+    "order": "sequential",
+    "timer_type": "per_question",
+    "timer_seconds": 15,
+    "questions": [
+      {
+        "text": "Pythonda matnni ekranga chiqarish uchun qaysi funksiya ishlatiladi?",
+        "options": {
+          "A": "fabs(x)",
+          "B": "21",
+          "C": "takrorlanuvchi algoritmlar",
+          "D": "print()"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda qanday o‘zgaruvchi nomi to‘g‘ri?",
+        "options": {
+          "A": "my_name",
+          "B": "Ost sinf qismi",
+          "C": "Sqrt(x)",
+          "D": "1"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=5 // 2 print(x)",
+        "options": {
+          "A": "Sort",
+          "B": "2.2",
+          "C": "2",
+          "D": "'HelloWorld'"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=10%3 print(x)",
+        "options": {
+          "A": "3",
+          "B": "16",
+          "C": "takrorlanuvchi algoritmlar",
+          "D": "Abstraksiyalash"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=8/4 print(x)",
+        "options": {
+          "A": "{}",
+          "B": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "C": "Al Xorazmiy",
+          "D": "2.2"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=7//3 print(x)",
+        "options": {
+          "A": "Ota klassga",
+          "B": "while",
+          "C": "2",
+          "D": "__init__(self, a, b, c)"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Ushbu amal natijasida qanday qiymat xasil bo’ladi? x=9%5+2**2 print(x)",
+        "options": {
+          "A": "8",
+          "B": "input, print",
+          "C": "'HelloWorld'",
+          "D": "del x"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda qay bir ma'lumot turi boolean hisoblanadi?",
+        "options": {
+          "A": "Joriy iteratsiyani o‘tkazib yuboradi",
+          "B": "class 'bool'",
+          "C": "1",
+          "D": "True, False"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 5 + 3 * 2 print(x)",
+        "options": {
+          "A": "11",
+          "B": "=",
+          "C": "del x",
+          "D": "Int"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 10 - 4 // 2 print(x)",
+        "options": {
+          "A": "'HelloWorld'",
+          "B": "7",
+          "C": "If,elif,else",
+          "D": "E’lon qilinishi shart emas"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = (8 + 4) * 2 - 6 print(x)",
+        "options": {
+          "A": "ASSEMBLER",
+          "B": "16",
+          "C": "Rasm",
+          "D": "21"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x=15 % 4 + 2 ** 3 print(x)",
+        "options": {
+          "A": "13",
+          "B": "ASSEMBLER",
+          "C": "__init__(self, a, b, c)",
+          "D": "def myFunction():"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x=25 // 4 * 3 + 2 print(x)",
+        "options": {
+          "A": "and, or, not",
+          "B": "Chiziqli, takrorlanuvchi, tarmoqlanuvchi",
+          "C": "21",
+          "D": "Or"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = 7 + 3 * (10 // 5)print(x)",
+        "options": {
+          "A": "print()",
+          "B": "bool",
+          "C": "14",
+          "D": "class 'bool'"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda list qanday belgilar bilan aniqlanadi?",
+        "options": {
+          "A": "[ ]",
+          "B": "def myFunction():",
+          "C": "bool",
+          "D": ".py"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda tuple qanday belgilar bilan aniqlanadi?",
+        "options": {
+          "A": "Qism dasturlar",
+          "B": "my_name",
+          "C": "()",
+          "D": "'HelloWorld'"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda o‘zgaruvchi qiymatini qanday o‘chirasiz?",
+        "options": {
+          "A": "If",
+          "B": "Voris sinf",
+          "C": "=",
+          "D": "del x"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? print(type(3.14))",
+        "options": {
+          "A": "class 'float'",
+          "B": "Sinf",
+          "C": "[ ]",
+          "D": "Ro’yhatlarda"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda tuple o‘zgarmas ekanligini bildiruvchi element qaysi?",
+        "options": {
+          "A": "11",
+          "B": "()",
+          "C": "print",
+          "D": "To’g’ri javob yo’q"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi funksiya uzunlikni hisoblaydi?",
+        "options": {
+          "A": "__init__()",
+          "B": "()",
+          "C": "Len()",
+          "D": "Abstraksiyalash"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kodning natijasi nima bo‘ladi? x = [1, 2, 3] print(x[1])",
+        "options": {
+          "A": "Abstraksiyalash",
+          "B": "11",
+          "C": "2",
+          "D": "takrorlanuvchi algoritmlar"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda shartni tekshirish uchun qaysi kalit so‘z ishlatiladi?",
+        "options": {
+          "A": "If",
+          "B": "E’lon qilinishi shart emas",
+          "C": "class 'float'",
+          "D": "append()"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda 'Hello' + 'World' natijasi qanday?",
+        "options": {
+          "A": "Joriy iteratsiyani o‘tkazib yuboradi",
+          "B": "'HelloWorld'",
+          "C": "Metod",
+          "D": "type"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi operator \"teng\"ligini tekshiradi?",
+        "options": {
+          "A": "o‘zgarmaslar",
+          "B": "{}",
+          "C": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "D": "=="
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Python-da doiraviy tsiklni belgilovchi operator qaysi?",
+        "options": {
+          "A": "Set",
+          "B": "Reverse",
+          "C": "del x",
+          "D": "For"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kod nima qaytaradi? x = \"123\" print(int(x) + 2)",
+        "options": {
+          "A": "my_name",
+          "B": "124",
+          "C": "To’g’ri javob yo’q",
+          "D": "Chiziqli, takrorlanuvchi, tarmoqlanuvchi"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda bo‘sh listni qanday hosil qilamiz?",
+        "options": {
+          "A": "[ ]",
+          "B": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "C": "16",
+          "D": "Ost sinf qismi"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi metod ro‘yxatga yangi element qo‘shadi? Pythonda 5 % 2 natijasida qanday natija chiqadi?",
+        "options": {
+          "A": "append()",
+          "B": "True yoki False",
+          "C": "Int",
+          "D": "Chiziqli, takrorlanuvchi, tarmoqlanuvchi"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi kalit so’zlarning qaysi birida sinf yaratiladi",
+        "options": {
+          "A": "CHiziqli",
+          "B": "fabs(x)",
+          "C": "append()",
+          "D": "1"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Sinf konstruktori qanday ko’rinishda tasvirlanadi",
+        "options": {
+          "A": "Sqrt(x)",
+          "B": "bu belgi qanday vazifani bajaradi",
+          "C": "__init__(self, a, b, c=6)",
+          "D": "class"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Quyidagi dastur qismida voris sinf kamandasini ko’rsating class A(B,C): pass",
+        "options": {
+          "A": "class 'float'",
+          "B": "for va while",
+          "C": "A",
+          "D": "Romb"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Yangi yaratilgan voris sinf nomini ko’rsating class A(B,C): pass",
+        "options": {
+          "A": "8",
+          "B": "type",
+          "C": "[ ]",
+          "D": "A"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Voris sinfning qaysi sinfdan voris olingan qatorni ko’rsating class A(B,C)",
+        "options": {
+          "A": "Ota klassga",
+          "B": "B va C",
+          "C": "If",
+          "D": "21"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning kengaytmasi bu",
+        "options": {
+          "A": "type",
+          "B": "class 'float'",
+          "C": "class MyClass:",
+          "D": "Ob’yektga yunaltirilgan dasturlash"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning asosiy paradigmalari bu",
+        "options": {
+          "A": "bu belgi qanday vazifani bajaradi",
+          "B": "Inkapsulyatsiya, Polimorfizm, Merosho’rlik",
+          "C": "input, print",
+          "D": "class 'float'"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "OYD ning eng asosiy tushunchalaridan biri bu …",
+        "options": {
+          "A": "input, print",
+          "B": "ASSEMBLER",
+          "C": "Voris sinf",
+          "D": "Ob’yekt"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning ahamiyatsiz hususiyatlarini chiqarib tashlash muhumlarni ajratish usullari",
+        "options": {
+          "A": "Funksiya",
+          "B": "Abstraksiyalash",
+          "C": "False, True",
+          "D": "Set"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qandaydir metodlarni va hususiyatlarni ob’yektlarning to’plami",
+        "options": {
+          "A": "class MyClass:",
+          "B": "Parallelogramm",
+          "C": "Sinf",
+          "D": "__init__(self, a, b, c=6)"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning holatining o’zgarishi bu…",
+        "options": {
+          "A": "class 'bool'",
+          "B": "for va while",
+          "C": "False, True",
+          "D": "Hodisa"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning bajarish mumkin bo’lgan harakatlar to’plami bu …",
+        "options": {
+          "A": "Ob’yekt",
+          "B": "False, True",
+          "C": "del x",
+          "D": "Metod"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Ob’yektning asosiy xaraktiristkasi bu …",
+        "options": {
+          "A": "Hususiyat",
+          "B": "7",
+          "C": "==",
+          "D": "ASSEMBLER"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda barcha ob’yektlar qaysi kalit so’zdan kelib chiqadi",
+        "options": {
+          "A": "True yoki False",
+          "B": "E’lon qilinishi shart emas",
+          "C": "Ro’yhatlarda",
+          "D": "Object"
+        },
+        "correct": "D",
+        "explanation": ""
+      },
+      {
+        "text": "Pythonda konstruktorlarni e’lon qilish ...",
+        "options": {
+          "A": "input, print",
+          "B": "__init__()",
+          "C": "False, True",
+          "D": "13"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Pythoda sinf konstruktorlarnito’g’ri yozilgan qatorni ko’rsating",
+        "options": {
+          "A": "bu belgi qanday vazifani bajaradi?",
+          "B": "__init__(self, a, b, c)",
+          "C": "2",
+          "D": "print"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Sinf konstruktori to’g’ri ko’rsatilgan qatorni ko’rsating",
+        "options": {
+          "A": "and, or, not",
+          "B": "14",
+          "C": "__init__(self, a, b, c=6)",
+          "D": "ASSEMBLER"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi nom A(class a(b)) sinfiga mos kelmaydi",
+        "options": {
+          "A": "Voris sinf",
+          "B": "Hususiyat",
+          "C": "3",
+          "D": "1"
+        },
+        "correct": "A",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi qatorda sinfning tipi aniqlanmagan A(classA(B))",
+        "options": {
+          "A": "class 'bool'",
+          "B": "Ost sinf qismi",
+          "C": "takrorlanuvchi algoritmlar",
+          "D": "Al Xorazmiy"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "Qaysi nom b sinfiga mos kelmaydi class a (b)",
+        "options": {
+          "A": "for va while",
+          "B": "Ota klassga",
+          "C": "==",
+          "D": "Metod"
+        },
+        "correct": "B",
+        "explanation": ""
+      },
+      {
+        "text": "While siklining qaysi qismi siklni to‘xtatishga javobgar?",
+        "options": {
+          "A": "class MyClass:",
+          "B": "var",
+          "C": "Shart noto‘g‘ri bo‘lishi",
+          "D": "#"
+        },
+        "correct": "C",
+        "explanation": ""
+      },
+      {
+        "text": "Python dasturida satr chiqarish uchun qaysi funksiya ishlatiladi?",
+        "options": {
+          "A": "16",
+          "B": "Ota klassga",
+          "C": "Shart noto‘g‘ri bo‘lishi",
+          "D": "print()"
+        },
+        "correct": "D",
+        "explanation": ""
+      }
+    ],
+    "created_at": "2026-04-21T18:24:37.249797+00:00"
+  }
+}
