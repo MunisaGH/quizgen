@@ -17,6 +17,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.28.0",
     "express": "^4.21.2",
     "firebase": "^12.12.1",
     "form-data": "^4.0.5",
@@ -31,6 +32,9 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.14.2",
     "tailwind-merge": "^3.5.0",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
     "vite": "^6.2.0"
   },
   "devDependencies": {
@@ -39,11 +43,6 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^22.14.0",
     "@types/pdf-parse": "^1.1.5",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.28.0",
-    "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "autoprefixer": "^10.4.21"
   }
 }
