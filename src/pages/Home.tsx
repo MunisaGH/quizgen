@@ -219,9 +219,9 @@ export default function Home() {
 
          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { title: 'Haftalik', price: '15,000', days: 7, icon: <Clock className="w-6 h-6" />, color: 'blue' },
-              { title: 'Oylik', price: '45,000', days: 30, icon: <Crown className="w-6 h-6" />, color: 'indigo', popular: true },
-              { title: 'Yillik', price: '120,000', days: 365, icon: <Sparkles className="w-6 h-6" />, color: 'emerald' }
+              { title: 'Haftalik', price: '$1', days: 7, icon: <Clock className="w-6 h-6" />, color: 'blue', features: ['7 kunlik kirish', 'Cheksiz testlar', 'Reklamasiz'] },
+              { title: 'Oylik', price: '$3', days: 30, icon: <Crown className="w-6 h-6" />, color: 'indigo', popular: true, features: ['30 kunlik kirish', 'Cheksiz testlar', 'PDF/DOCX yuklash', 'Reklamasiz'] },
+              { title: 'Yillik', price: '$10', days: 365, icon: <Sparkles className="w-6 h-6" />, color: 'emerald', features: ['365 kunlik kirish', 'Cheksiz testlar', 'PDF/DOCX yuklash', 'Ustuvor yordam', 'Reklamasiz'] }
             ].map((plan) => (
               <div key={plan.title} className={cn(
                 "relative bg-card border rounded-[2.5rem] p-8 transition-all hover:scale-[1.02]",
@@ -243,18 +243,14 @@ export default function Home() {
                 <h3 className="text-xl font-black text-main mb-1">{plan.title}</h3>
                 <div className="flex items-baseline gap-1 mb-6">
                   <span className="text-3xl font-black text-main">{plan.price}</span>
-                  <span className="text-muted text-sm font-bold uppercase tracking-widest">UZS</span>
+                  <span className="text-muted text-sm font-bold uppercase tracking-widest">USD</span>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Cheksiz testlar
-                  </li>
-                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> 100+ savol bitta testda
-                  </li>
-                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Reklamasiz foydalanish
-                  </li>
+                <ul className="space-y-3 mb-8">
+                  {plan.features.map((f: string, i: number) => (
+                    <li key={i} className="flex items-center gap-3 text-sm font-medium text-muted">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500" />{f}
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}

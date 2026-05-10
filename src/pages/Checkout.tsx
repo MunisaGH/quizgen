@@ -12,7 +12,7 @@ const plans = [
   {
     key: 'weekly',
     name: 'Haftalik',
-    price: '15 000',
+    price: '$1',
     days: 7,
     color: 'blue',
     icon: <Clock className="w-5 h-5" />,
@@ -21,36 +21,34 @@ const plans = [
   {
     key: 'monthly',
     name: 'Oylik',
-    price: '45 000',
+    price: '$3',
     days: 30,
     popular: true,
     color: 'indigo',
     icon: <Crown className="w-5 h-5" />,
-    features: ['30 kunlik kirish', 'Cheksiz testlar', 'Natijalarni ulashish', 'Reklamasiz'],
+    features: ['30 kunlik kirish', 'Cheksiz testlar', 'PDF/DOCX yuklash', 'Reklamasiz'],
   },
   {
     key: 'yearly',
     name: 'Yillik',
-    price: '450 000',
+    price: '$10',
     days: 365,
     color: 'emerald',
     icon: <Sparkles className="w-5 h-5" />,
-    features: ['365 kunlik kirish', 'Cheksiz testlar', 'Natijalarni ulashish', 'Reklamasiz', 'Ustuvor yordam'],
+    features: ['365 kunlik kirish', 'Cheksiz testlar', 'PDF/DOCX yuklash', 'Ustuvor yordam', 'Reklamasiz'],
   },
 ];
 
 const BOT_USERNAME = 'QuizGenPayBot'; // Telegram bot username
-const CARD_NUMBER = '9860 1606 3341 5361';
-const CARD_OWNER = 'R. SARDORBEK';
 
 export default function Checkout() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState('monthly');
-  const [copiedCard, setCopiedCard] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [userCardNumber, setUserCardNumber] = useState('');
 
   const plan = plans.find(p => p.key === selectedPlan)!;
 
@@ -175,35 +173,29 @@ export default function Checkout() {
 
           {/* Steps */}
           <div className="space-y-4 mb-8">
-            {/* Step A: Copy card */}
+            {/* Step A: Enter own card number */}
             <div className="bg-card border border-subtle rounded-[2rem] p-6">
               <div className="flex items-start gap-4">
                 <div className="w-8 h-8 bg-blue-600 text-white rounded-xl flex items-center justify-center shrink-0 font-black text-sm">1</div>
                 <div className="flex-1">
-                  <p className="font-black text-main mb-1 text-sm">Quyidagi kartaga to'lov qiling</p>
-                  <p className="text-xs text-muted font-medium mb-4">
-                    Tanlangan tarif: <span className="font-black text-blue-600">{plan.name} — {plan.price} UZS</span>
+                  <p className="font-black text-main mb-1 text-sm">Karta raqamingizni kiriting</p>
+                  <p className="text-xs text-muted font-medium mb-3">
+                    To'lov qilgan kartangiz raqamini kiriting. Admin shu raqam orqali to'lovni tekshiradi.
                   </p>
-                  {/* Card */}
-                  <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl text-white relative overflow-hidden mb-3">
-                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-10 -mt-10" />
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mb-2">To'lov kartasi</p>
-                    <p className="text-xl font-mono font-black tracking-widest mb-3">{CARD_NUMBER}</p>
-                    <p className="text-sm font-bold text-blue-100">{CARD_OWNER}</p>
-                  </div>
-                  <button
-                    onClick={copyCard}
-                    className={cn(
-                      "w-full py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all border",
-                      copiedCard
-                        ? "bg-emerald-600 text-white border-emerald-600"
-                        : "bg-zinc-50 dark:bg-zinc-900 text-main border-subtle hover:border-blue-400"
-                    )}
-                  >
-                    {copiedCard ? <><Check className="w-3.5 h-3.5" /> Nusxalandi!</> : <><Copy className="w-3.5 h-3.5" /> Karta raqamini nusxalash</>}
-                  </button>
+                  <p className="text-xs text-muted font-medium mb-3">
+                    Tanlangan tarif: <span className="font-black text-blue-600">{plan.name} — {plan.price} USD</span>
+                  </p>
+                  <input
+                    type="text"
+                    value={userCardNumber}
+                    onChange={e => setUserCardNumber(e.target.value.replace(/[^\d\s]/g, '').slice(0, 19))}
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-subtle rounded-xl px-4 py-3 text-lg font-mono font-black text-main tracking-widest outline-none focus:border-blue-500 transition-colors"
+                    maxLength={19}
+                  />
                 </div>
               </div>
+            </div>>
             </div>
 
             {/* Step B: Copy User ID */}
