@@ -195,8 +195,8 @@ export default function Checkout() {
                   />
                 </div>
               </div>
-            </div>>
             </div>
+
 
             {/* Step B: Copy User ID */}
             <div className="bg-card border border-subtle rounded-[2rem] p-6">
