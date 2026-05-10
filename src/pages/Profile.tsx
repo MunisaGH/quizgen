@@ -3,13 +3,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/UIContext';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { User, Mail, BarChart3, LogOut, Award, BookOpen, Clock } from 'lucide-react';
+import { User, Mail, BarChart3, LogOut, Award, BookOpen, Clock, Copy, Crown, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { ProfileSkeleton } from '../components/Skeleton';
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, userData, logout } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -25,11 +25,11 @@ export default function Profile() {
       if (!user) return;
       try {
         // Fetch quizzes count
-        const qQuizzes = query(collection(db, "quizzes"), where("userId", "==", user.uid));
+        const qQuizzes = query(collection(db, "quizzes", user.uid, "items"));
         const quizSnap = await getDocs(qQuizzes);
         
         // Fetch results count and avg score
-        const qResults = query(collection(db, "results"), where("userId", "==", user.uid));
+        const qResults = query(collection(db, "results", user.uid, "items"));
         const resultSnap = await getDocs(qResults);
         
         let totalScore = 0;
@@ -45,8 +45,7 @@ export default function Profile() {
 
         // Fetch recent 10 scores for chart
         const qRecent = query(
-          collection(db, "results"), 
-          where("userId", "==", user.uid),
+          collection(db, "results", user.uid, "items"), 
           orderBy("createdAt", "desc"),
           limit(10)
         );
@@ -93,18 +92,39 @@ export default function Profile() {
 
         <div className="pt-16 pb-8 px-8">
            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-             <div>
-               <h1 className="text-2xl font-black text-main tracking-tight">{user?.displayName || 'Foydalanuvchi'}</h1>
-               <p className="text-muted flex items-center gap-1.5 mt-1 text-sm font-bold">
-                 <Mail className="w-4 h-4" /> {user?.email}
-               </p>
-             </div>
-             <button 
-               onClick={handleLogout}
-               className="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl font-black text-xs transition-all duration-300 uppercase tracking-widest border border-red-100 dark:border-red-900/30"
-             >
-               <LogOut className="w-4 h-4" /> CHIQISH
-             </button>
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-black text-main tracking-tight">{user?.displayName || 'Foydalanuvchi'}</h1>
+                  {userData?.isPremium && (
+                    <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-amber-200 dark:border-amber-800/50 flex items-center gap-1">
+                      <Crown className="w-3 h-3" /> Premium
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted flex items-center gap-1.5 mt-1 text-sm font-bold">
+                  <Mail className="w-4 h-4" /> {user?.email}
+                </p>
+                <div className="flex items-center gap-2 mt-4 bg-zinc-50 dark:bg-zinc-900/50 px-4 py-2 rounded-xl border border-subtle w-fit group">
+                  <span className="text-[10px] font-black text-muted uppercase tracking-widest">ID:</span>
+                  <code className="text-xs font-bold text-main">{user?.uid}</code>
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(user?.uid || '');
+                      showToast("ID nusxalandi", "success");
+                    }}
+                    className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-lg transition-colors text-zinc-400 hover:text-blue-600"
+                    title="ID-dan nusxa olish"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-6 py-3 bg-red-50 dark:bg-red-900/10 text-red-600 hover:bg-red-600 hover:text-white rounded-2xl font-black text-xs transition-all duration-300 uppercase tracking-widest border border-red-100 dark:border-red-900/30"
+              >
+                <LogOut className="w-4 h-4" /> CHIQISH
+              </button>
            </div>
 
            {/* Stats Grid */}

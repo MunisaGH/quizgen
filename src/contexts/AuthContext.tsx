@@ -1,9 +1,23 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { useToast } from './UIContext';
+import { auth, db } from '../lib/firebase';
+import { doc, onSnapshot, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+
+export interface UserData {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  isPremium: boolean;
+  isAdmin?: boolean;
+  premiumUntil: string | null;
+  createdAt: Timestamp | null;
+}
 
 interface AuthContextType {
   user: User | null;
+  userData: UserData | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -13,14 +27,43 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      
+      if (currentUser) {
+        // Sync user to Firestore
+        const userRef = doc(db, 'users', currentUser.uid);
+        const unsubUser = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserData(docSnap.data());
+          } else {
+            // Create user document if not exists
+            const initialData = {
+              uid: currentUser.uid,
+              email: currentUser.email,
+              displayName: currentUser.displayName,
+              photoURL: currentUser.photoURL,
+              isPremium: false,
+              premiumUntil: null,
+              createdAt: serverTimestamp()
+            };
+            setDoc(userRef, initialData);
+            setUserData(initialData);
+          }
+          setLoading(false);
+        });
+        return () => unsubUser();
+      } else {
+        setUserData(null);
+        setLoading(false);
+      }
     });
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   const signInWithGoogle = async () => {
@@ -30,15 +73,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         prompt: 'select_account'
       });
       await signInWithPopup(auth, provider);
-    } catch (error: any) {
-      console.error('Error signing in with Google', error);
-      if (error.code === 'auth/popup-closed-by-user') {
-        alert("Kirish oynasi yopildi. Iltimos, qayta urinib ko'ring.");
-      } else if (error.code === 'auth/unauthorized-domain') {
+    } catch (error: unknown) {
+      const firebaseError = error as { code?: string; message?: string };
+      console.error('Error signing in with Google', firebaseError);
+      if (firebaseError.code === 'auth/popup-closed-by-user') {
+        showToast("Kirish oynasi yopildi. Iltimos, qayta urinib ko'ring.", 'error');
+      } else if (firebaseError.code === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        alert(`Ushbu domen Firebase'da ruxsat etilmagan: \n\n${domain}\n\nIltimos, ushbu domenni nusxalab, Firebase Console -> Authentication -> Settings -> Authorized domains bo'limiga qo'shing.`);
+        showToast(`Ushbu domen ruxsat etilmagan: ${domain}`, 'error');
       } else {
-        alert("Kirishda xatolik yuz berdi: " + error.message);
+        showToast("Kirishda xatolik yuz berdi: " + firebaseError.message, 'error');
       }
       throw error;
     }
@@ -53,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, userData, loading, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

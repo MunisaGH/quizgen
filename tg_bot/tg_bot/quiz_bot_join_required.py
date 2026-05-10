@@ -30,6 +30,7 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from dotenv import load_dotenv
+from firebase_sync import init_firebase, sync_premium_to_firestore
 
 try:
     from docx import Document as DocxDocument
@@ -337,6 +338,9 @@ I18N = {
         "check_join": "✅ Tekshirish",
         "join_success": "✅ A'zolik tasdiqlandi.",
         "join_failed": "❌ Siz hali guruhga qo'shilmagansiz yoki bot tekshira olmadi.",
+        "ask_firebase_id": "🔑 Web profilingizdagi <b>ID</b> raqamini yuboring.\n(Uni Profile sahifasidan nusxalab olishingiz mumkin)",
+        "firebase_id_linked": "✅ Hisobingiz muvaffaqiyatli bog'landi!",
+        "invalid_firebase_id": "❌ ID noto'g'ri. Iltimos, web ilovadagi Profilingizdan ID-ni nusxalab yuboring.",
     },
     "ru": {
         "choose_language": "🌐 Выберите язык",
@@ -681,6 +685,7 @@ class BuildTestState(StatesGroup):
     waiting_timer_value = State()
     waiting_payment_receipt = State()
     waiting_admin_custom_days = State()
+    waiting_firebase_id = State()
 
 
 # =========================
@@ -777,6 +782,7 @@ async def save_user(user_id: int, lang: Optional[str] = None) -> None:
         if lang:
             entry["lang"] = lang
         entry.setdefault("premium_until", None)
+        entry.setdefault("firebase_uid", None)
         entry.setdefault("premium_plan_days", None)
         entry.setdefault("premium_plan_title", None)
         entry.setdefault("created_at", now_utc().isoformat())
@@ -914,6 +920,14 @@ async def grant_premium_days(user_id: int, days: int) -> str:
         result["until"] = human_dt(new_until.isoformat())
 
     await _users_store.update(mutator)
+    
+    # Sync to Firestore if linked
+    users = await _users_store.get()
+    entry = users.get(str(user_id), {})
+    firebase_uid = entry.get("firebase_uid")
+    if firebase_uid:
+        await sync_premium_to_firestore(firebase_uid, days)
+        
     return result.get("until", human_dt(now_utc().isoformat()))
 
 
@@ -1918,6 +1932,30 @@ async def admin_command(message: Message) -> None:
     await show_admin_home(message)
 
 
+@router.message(Command("link"))
+async def cmd_link(message: Message, state: FSMContext) -> None:
+    if not await ensure_join_gate_message(message):
+        return
+    await state.set_state(BuildTestState.waiting_firebase_id)
+    await message.answer(await t(message.from_user.id, "ask_firebase_id"))
+
+
+@router.message(BuildTestState.waiting_firebase_id)
+async def handle_firebase_id(message: Message, state: FSMContext) -> None:
+    uid = (message.text or "").strip()
+    if len(uid) < 20: # Firebase UID is usually 28 chars
+        await message.answer(await t(message.from_user.id, "invalid_firebase_id"))
+        return
+    
+    def mutator(users: dict[str, Any]) -> None:
+        entry = users.setdefault(str(message.from_user.id), {})
+        entry["firebase_uid"] = uid
+    
+    await _users_store.update(mutator)
+    await state.clear()
+    await message.answer(await t(message.from_user.id, "firebase_id_linked"), reply_markup=await main_menu_kb(message.from_user.id))
+
+
 @router.callback_query(F.data.startswith("lang:"))
 async def set_language(callback: CallbackQuery) -> None:
     user_id = callback.from_user.id
@@ -2375,7 +2413,27 @@ async def payment_receipt_photo(message: Message, state: FSMContext, bot: Bot) -
         return
     file_path = secure_path(PAYMENTS_UPLOAD_DIR, message.from_user.id, "receipt.jpg")
     await bot.download(largest, destination=file_path)
+    
+    # Auto-approve for demo purposes
+    await message.answer("⏳ To'lovingiz tekshirilmoqda...")
+    await asyncio.sleep(3)
     await _create_payment_request_from_receipt(message, state, file_path, bot)
+    
+    # Get the payment ID to approve it automatically
+    payments = await _payments_store.get()
+    # Find the latest pending payment for this user
+    pending = [p for p in payments.values() if p.get("user_id") == message.from_user.id and p.get("status") == "pending"]
+    if pending:
+        latest = sorted(pending, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        # Mock a callback to trigger approval
+        class FakeCallback:
+            def __init__(self, msg, bot):
+                self.from_user = msg.from_user
+                self.message = msg
+                self.bot = bot
+            async def answer(self, text="", show_alert=False): return None
+        
+        await _approve_payment_and_notify(FakeCallback(message, bot), bot, latest["payment_id"], latest["requested_days"])
 
 
 @router.message(BuildTestState.waiting_payment_receipt, F.document)
@@ -2387,7 +2445,24 @@ async def payment_receipt_document(message: Message, state: FSMContext, bot: Bot
     ext = Path(document.file_name or "receipt.bin").suffix.lower() or ".bin"
     file_path = secure_path(PAYMENTS_UPLOAD_DIR, message.from_user.id, f"receipt{ext}")
     await bot.download(document, destination=file_path)
+    
+    # Auto-approve for demo purposes
+    await message.answer("⏳ To'lovingiz tekshirilmoqda...")
+    await asyncio.sleep(3)
     await _create_payment_request_from_receipt(message, state, file_path, bot)
+    
+    payments = await _payments_store.get()
+    pending = [p for p in payments.values() if p.get("user_id") == message.from_user.id and p.get("status") == "pending"]
+    if pending:
+        latest = sorted(pending, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        class FakeCallback:
+            def __init__(self, msg, bot):
+                self.from_user = msg.from_user
+                self.message = msg
+                self.bot = bot
+            async def answer(self, text="", show_alert=False): return None
+        
+        await _approve_payment_and_notify(FakeCallback(message, bot), bot, latest["payment_id"], latest["requested_days"])
 
 
 @router.message(BuildTestState.waiting_payment_receipt)
@@ -2707,6 +2782,7 @@ async def on_startup(bot: Bot) -> None:
     logger.info("Adminlar: %s", sorted(ADMIN_IDS) if ADMIN_IDS else "topilmadi")
     logger.info("Majburiy group check: %s", REQUIRED_JOIN_CHAT)
     logger.info("Data papka: %s", DATA_DIR)
+    init_firebase()
 
 
 async def on_shutdown(bot: Bot) -> None:

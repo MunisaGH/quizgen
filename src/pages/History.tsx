@@ -10,7 +10,7 @@ import { HistorySkeleton } from '../components/Skeleton';
 interface QuizMeta {
   id: string;
   title: string;
-  createdAt: any;
+  createdAt: string;
   questionCount: number;
 }
 
@@ -27,8 +27,7 @@ export default function History() {
       if (!user) return;
       try {
         const q = query(
-          collection(db, "quizzes"), 
-          where("userId", "==", user.uid)
+          collection(db, "quizzes", user.uid, "items")
         );
         
         const querySnapshot = await getDocs(q);
@@ -59,7 +58,7 @@ export default function History() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Rostdan ham bu testni o'chirmoqchimisiz?")) {
       try {
-        await deleteDoc(doc(db, "quizzes", id));
+        await deleteDoc(doc(db, "quizzes", user!.uid, "items", id));
         setQuizzes(prev => prev.filter(q => q.id !== id));
         showToast("Test muvaffaqiyatli o'chirildi", "success");
       } catch (err) {
@@ -77,7 +76,7 @@ export default function History() {
   const handleSaveEdit = async (id: string) => {
     if (!tempTitle.trim()) return;
     try {
-      await updateDoc(doc(db, "quizzes", id), { title: tempTitle });
+      await updateDoc(doc(db, "quizzes", user!.uid, "items", id), { title: tempTitle });
       setQuizzes(prev => prev.map(q => q.id === id ? { ...q, title: tempTitle } : q));
       setEditingId(null);
       showToast("Nom muvaffaqiyatli yangilandi", "success");
@@ -88,6 +87,7 @@ export default function History() {
   };
 
   if (loading) return <div className="max-w-3xl mx-auto px-4 mt-8"><HistorySkeleton /></div>;
+
 
   return (
     <div className="max-w-3xl mx-auto px-4 pb-20">

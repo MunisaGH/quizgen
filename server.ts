@@ -21,7 +21,7 @@ const upload = multer({
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   app.use(express.json());
 
@@ -37,7 +37,7 @@ async function startServer() {
 
   app.post('/api/generate-quiz', upload.single('file'), async (req, res) => {
     try {
-      const { questionCount, difficulty, language, mode, text: bodyText, topic } = req.body;
+      const { questionCount, difficulty, language, mode, text: bodyText, topic, aiModel } = req.body;
       let sourceText = '';
 
       if (mode === 'file') {
@@ -112,7 +112,7 @@ Faqatgina JSON formatda qaytar. JSON strukturasi qat'iyan quyidagicha bo'lishi s
 correctAnswers - bu to'g'ri javoblar indekslari massivi. Agar faqat bitta to'g'ri javob bo'lsa, massivda bitta element bo'lsin va isMultiple: false bo'lsin. Jami variantlar doim 4 ta bo'lsin. Hech qanday HTML markdown (\`\`\`json) yoki boshqa matn ishlatma, to'g'ridan to'g'ri sof JSON obyekti qaytar.`;
 
         const response = await openai.chat.completions.create({
-           model: 'gpt-4o-mini',
+           model: aiModel || 'gpt-4o-mini',
            messages: [
              { role: 'system', content: prompt },
              { role: 'user', content: mode === 'topic' ? `Mavzu haqida test tuz: ${topic}` : `MATN:\n${sourceText.substring(0, 90000)}` }

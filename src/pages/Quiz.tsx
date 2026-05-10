@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/UIContext';
-import { Loader2, ArrowLeft, ArrowRight, CheckCircle2, Clock, ListChecks } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, ListChecks } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
+import { QuizSkeleton } from '../components/Skeleton';
 
 interface Question {
   question: string;
@@ -33,12 +34,13 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<number[][]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const touchStartX = useRef<number>(0);
 
   useEffect(() => {
     async function fetchQuiz() {
       if (!quizId) return;
       try {
-        const docRef = doc(db, "quizzes", quizId);
+        const docRef = doc(db, "quizzes", user!.uid, "items", quizId);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
@@ -105,7 +107,7 @@ export default function Quiz() {
         createdAt: new Date().toISOString(),
         autoSubmitted: true
       };
-      const docRef = await addDoc(collection(db, "results"), newResult);
+      const docRef = await addDoc(collection(db, "results", user!.uid, "items"), newResult);
       localStorage.removeItem(`quiz_progress_${quizId}`);
       navigate(`/result/${docRef.id}`);
     } catch (err) {
@@ -202,7 +204,7 @@ export default function Quiz() {
         createdAt: new Date().toISOString()
       };
       
-      const docRef = await addDoc(collection(db, "results"), newResult);
+      const docRef = await addDoc(collection(db, "results", user!.uid, "items"), newResult);
       localStorage.removeItem(`quiz_progress_${quizId}`);
       showToast("Test yakunlandi!", "success");
       navigate(`/result/${docRef.id}`);
@@ -220,13 +222,23 @@ export default function Quiz() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  if (loading) return <div className="flex flex-col items-center justify-center h-screen gap-4 bg-card"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /><p className="text-sm font-black text-muted tracking-widest uppercase">Savollar tayyorlanmoqda...</p></div>;
+  if (loading) return <QuizSkeleton />;
   if (!quiz) return <div className="p-8 text-center bg-card">Test topilmadi</div>;
 
   const currentQuestion = quiz.questions[currentIndex];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col transition-colors duration-300">
+    <div 
+      className="min-h-screen bg-white dark:bg-zinc-950 flex flex-col transition-colors duration-300"
+      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        const diff = touchStartX.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 60) {
+          if (diff > 0 && quiz && currentIndex < quiz.questions.length - 1) handleNext();
+          else if (diff < 0 && currentIndex > 0) handlePrev();
+        }
+      }}
+    >
       {/* Header Area */}
       <div className="glass-panel border-b border-subtle px-6 py-4 flex items-center justify-between sticky top-0 z-40">
          <div className="flex flex-col">
@@ -346,9 +358,14 @@ export default function Quiz() {
             ) : (
               <button
                 onClick={handleNext}
-                className="w-full sm:w-auto px-10 py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] tracking-widest uppercase hover:bg-blue-700 shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-2"
+                className={cn(
+                  "w-full sm:w-auto px-10 py-3 rounded-xl font-black text-[10px] tracking-widest uppercase transition-all flex items-center justify-center gap-2",
+                  answers[currentIndex]?.length > 0 
+                   ? "bg-blue-600 text-white hover:bg-blue-700 shadow-xl shadow-blue-600/20" 
+                   : "bg-zinc-100 dark:bg-zinc-800 text-muted hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-transparent"
+                )}
               >
-                KEYINGISI <ArrowRight className="w-4 h-4" />
+                {answers[currentIndex]?.length > 0 ? "KEYINGISI" : "O'TKAZIB YUBORISH"} <ArrowRight className="w-4 h-4" />
               </button>
             )}
           </div>

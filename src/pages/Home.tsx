@@ -1,13 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/UIContext';
-import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock, HelpCircle, Globe, ListChecks } from 'lucide-react';
+import { UploadCloud, Loader2, FileCheck2, XCircle, ArrowRight, FileText, Layers, Presentation, MessageSquare, BookOpen, ArrowLeft, Info, Sparkles, Clock, HelpCircle, Globe, ListChecks, Crown, CreditCard } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
+import Onboarding from '../components/Onboarding';
 
-type ViewMode = 'menu' | 'upload' | 'guide';
+type ViewMode = 'menu' | 'upload' | 'guide' | 'premium';
 
 export default function Home() {
   const [view, setView] = useState<ViewMode>('menu');
@@ -19,13 +20,20 @@ export default function Home() {
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>('medium');
   const [language, setLanguage] = useState<string>('uzbek');
+  const [aiModel, setAiModel] = useState<string>('gpt-4o-mini');
   const [inputMode, setInputMode] = useState<'file' | 'text' | 'topic'>('file');
   const [inputText, setInputText] = useState('');
   const [inputTopic, setInputTopic] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { showToast } = useToast();
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
+
+  const handleOnboardingDone = () => {
+    localStorage.setItem('onboarding_done', '1');
+    setShowOnboarding(false);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -75,6 +83,12 @@ export default function Home() {
   };
 
   const generateQuiz = async () => {
+    if (!userData?.isPremium) {
+      setView('premium');
+      showToast("Test yaratish uchun Premium obuna kerak", "info");
+      return;
+    }
+
     if (inputMode === 'file' && !file) { showToast("Iltimos, fayl yuklang", "error"); return; }
     if (inputMode === 'text' && !inputText) { showToast("Iltimos, matn kiriting", "error"); return; }
     if (inputMode === 'topic' && !inputTopic) { showToast("Iltimos, mavzu kiriting", "error"); return; }
@@ -102,8 +116,10 @@ export default function Home() {
       formData.append('questionCount', questionCount.toString());
       formData.append('difficulty', difficulty);
       formData.append('language', language);
+      formData.append('aiModel', aiModel);
+      formData.append('mode', inputMode);
 
-      const res = await fetch('http://localhost:5000/api/generate', {
+      const res = await fetch('/api/generate-quiz', {
         method: 'POST',
         body: formData,
       });
@@ -115,7 +131,7 @@ export default function Home() {
 
       const data = await res.json();
       
-      const docRef = await addDoc(collection(db, "quizzes"), {
+      const docRef = await addDoc(collection(db, "quizzes", user!.uid, "items"), {
         userId: user?.uid,
         title: inputMode === 'topic' ? inputTopic : (file ? file.name : "Matn asosida test"),
         questions: data.questions,
@@ -189,8 +205,83 @@ export default function Home() {
     );
   }
 
+  if (view === 'premium') {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+         <button onClick={() => setView('menu')} className="mb-8 flex items-center gap-2 text-muted hover:text-blue-600 transition-colors font-black text-[10px] tracking-widest bg-card border border-subtle px-4 py-2 rounded-full shadow-sm w-fit uppercase">
+            <ArrowLeft className="w-3.5 h-3.5" /> ORQAGA QAYTISH
+         </button>
+         
+         <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-black text-main tracking-tighter mb-4">Premium tariflar</h2>
+            <p className="text-muted font-medium">Cheksiz imkoniyatlarga ega bo'lish uchun tarifni tanlang</p>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { title: 'Haftalik', price: '15,000', days: 7, icon: <Clock className="w-6 h-6" />, color: 'blue' },
+              { title: 'Oylik', price: '45,000', days: 30, icon: <Crown className="w-6 h-6" />, color: 'indigo', popular: true },
+              { title: 'Yillik', price: '120,000', days: 365, icon: <Sparkles className="w-6 h-6" />, color: 'emerald' }
+            ].map((plan) => (
+              <div key={plan.title} className={cn(
+                "relative bg-card border rounded-[2.5rem] p-8 transition-all hover:scale-[1.02]",
+                plan.popular ? "border-indigo-500 shadow-2xl shadow-indigo-500/10" : "border-subtle"
+              )}>
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest">
+                    Eng mashhur
+                  </div>
+                )}
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center mb-6",
+                  plan.color === 'blue' ? "bg-blue-100 text-blue-600 dark:bg-blue-900/30" : 
+                  plan.color === 'indigo' ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30" : 
+                  "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30"
+                )}>
+                  {plan.icon}
+                </div>
+                <h3 className="text-xl font-black text-main mb-1">{plan.title}</h3>
+                <div className="flex items-baseline gap-1 mb-6">
+                  <span className="text-3xl font-black text-main">{plan.price}</span>
+                  <span className="text-muted text-sm font-bold uppercase tracking-widest">UZS</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Cheksiz testlar
+                  </li>
+                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> 100+ savol bitta testda
+                  </li>
+                  <li className="flex items-center gap-3 text-sm font-medium text-muted">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Reklamasiz foydalanish
+                  </li>
+                </ul>
+              </div>
+            ))}
+         </div>
+
+         <div className="mt-12 bg-zinc-900 text-white rounded-[2.5rem] p-8 md:p-12 relative overflow-hidden">
+            <div className="relative z-10">
+               <h3 className="text-2xl font-black mb-4">To'lovni amalga oshirish</h3>
+               <p className="text-zinc-400 mb-8 max-w-xl">
+                  Premium imkoniyatlarga ega bo'lish uchun to'lovni amalga oshiring va chekni bizga yuboring. To'lov tasdiqlanishi bilan barcha cheklovlar olib tashlanadi.
+               </p>
+               <button 
+                 onClick={() => navigate('/checkout')}
+                 className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-black transition-all shadow-lg shadow-blue-600/30"
+               >
+                  <CreditCard className="w-5 h-5" /> TO'LOV SAHIFASIGA O'TISH
+               </button>
+            </div>
+            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-[100px]"></div>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-6 pt-10 pb-20">
+      {showOnboarding && <Onboarding onDone={handleOnboardingDone} />}
       {view === 'menu' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="text-center mb-16 relative">
@@ -236,10 +327,10 @@ export default function Home() {
              </button>
              <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full hidden sm:block"></div>
              <a href="https://t.me/talabaga_yordam_pro" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-muted hover:text-blue-500 font-black text-xs uppercase tracking-widest transition-colors">
-                <MessageSquare className="w-4 h-4" /> Telegram Bot
+                <MessageSquare className="w-4 h-4" /> Telegram Kanal
              </a>
              <div className="w-1 h-1 bg-zinc-300 dark:bg-zinc-700 rounded-full hidden sm:block"></div>
-             <p className="text-muted text-xs font-bold uppercase tracking-widest">LOYIHA REMIX-AI TOMONIDAN TAQDIM ETILDI</p>
+              <a href="https://activision.uz" target="_blank" rel="noreferrer" className="text-muted hover:text-blue-500 text-xs font-black uppercase tracking-widest transition-colors">ACTIVISION.UZ</a>
           </div>
         </div>
       ) : (
@@ -393,6 +484,36 @@ export default function Home() {
                        <option value="english">English</option>
                        <option value="russian">Русский</option>
                      </select>
+                  </div>
+
+                  <div className="space-y-4">
+                     <label className="text-[10px] font-black text-muted uppercase tracking-widest flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5" /> AI Modeli
+                     </label>
+                     <div className="flex gap-2 bg-zinc-50 dark:bg-zinc-900/50 p-1 rounded-2xl border border-subtle">
+                        <button
+                          onClick={() => setAiModel('gpt-4o-mini')}
+                          className={cn(
+                            "flex-1 py-2.5 rounded-xl text-xs font-black transition-all",
+                            aiModel === 'gpt-4o-mini' 
+                             ? "bg-white dark:bg-zinc-800 text-main shadow-sm" 
+                             : "text-muted hover:text-main"
+                          )}
+                        >
+                          GPT-4o mini
+                        </button>
+                        <button
+                          onClick={() => setAiModel('gpt-4o')}
+                          className={cn(
+                            "flex-1 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5",
+                            aiModel === 'gpt-4o' 
+                             ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" 
+                             : "text-muted hover:text-main"
+                          )}
+                        >
+                          GPT-4o <Crown className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                     </div>
                   </div>
                </div>
             </div>

@@ -28,7 +28,7 @@ interface ResultData {
 }
 
 export default function SharedResult() {
-  const { resultId } = useParams();
+  const { userId, resultId } = useParams();
   const [result, setResult] = useState<ResultData | null>(null);
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,16 +36,16 @@ export default function SharedResult() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!resultId) return;
+      if (!resultId || !userId) return;
       try {
-        const resultRef = doc(db, "results", resultId);
+        const resultRef = doc(db, "results", userId, "items", resultId);
         const resultSnap = await getDoc(resultRef);
         
         if (!resultSnap.exists()) throw new Error("Natija topilmadi yoki o'chirib tashlangan");
         const rData = resultSnap.data() as ResultData;
         setResult(rData);
 
-        const quizRef = doc(db, "quizzes", rData.quizId);
+        const quizRef = doc(db, "quizzes", rData.userId, "items", rData.quizId);
         const quizSnap = await getDoc(quizRef);
         
         if (quizSnap.exists()) {
@@ -53,8 +53,9 @@ export default function SharedResult() {
         } else {
            throw new Error("Test ma'lumotlari topilmadi");
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message);
       } finally {
         setLoading(false);
       }

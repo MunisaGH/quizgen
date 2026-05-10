@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/UIContext';
-import { Loader2, ArrowLeft, CheckCircle2, XCircle, Share2, Check, Award, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, XCircle, Share2, Check, Award, Clock, ListChecks } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { ResultSkeleton } from '../components/Skeleton';
 
 interface ResultData {
   userId: string;
@@ -32,7 +33,7 @@ interface QuizData {
 export default function Result() {
   const { resultId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const { showToast } = useToast();
   
   const [result, setResult] = useState<ResultData | null>(null);
@@ -62,9 +63,10 @@ export default function Result() {
         } else {
            throw new Error("Test ma'lumotlari topilmadi");
         }
-      } catch (err: any) {
-        setError(err.message);
-        showToast(err.message, "error");
+      } catch (err: unknown) {
+        const error = err as Error;
+        setError(error.message);
+        showToast(error.message, "error");
       } finally {
         setLoading(false);
       }
@@ -73,7 +75,11 @@ export default function Result() {
   }, [resultId, user]);
 
   const handleShare = () => {
-    const url = `${window.location.origin}/shared/${resultId}`;
+    if (!userData?.isPremium) {
+      showToast("Do'stlar bilan natijani ulashish faqat Premium tarifda mavjud", "info");
+      return;
+    }
+    const url = `${window.location.origin}/shared/${user.uid}/${resultId}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     showToast("Link nusxalandi!", "success");
@@ -86,7 +92,7 @@ export default function Result() {
     return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
   };
 
-  if (loading) return <div className="flex flex-col items-center justify-center h-screen gap-4 bg-card"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /><p className="text-[10px] font-black text-muted uppercase tracking-widest">Natijangiz hisoblanmoqda...</p></div>;
+  if (loading) return <ResultSkeleton />;
 
   if (error || !result || !quiz) {
     return (
@@ -168,6 +174,53 @@ export default function Result() {
              </div>
            </div>
         </div>
+
+        {/* Key Insights — 4.1 */}
+        {(() => {
+          // Find hardest question (most wrong answers = question that was skipped or wrong)
+          const wrongQuestions = quiz.questions.reduce<{ idx: number; text: string }[]>((acc, q, i) => {
+            const userAns = Array.isArray(result.answers[i]) ? result.answers[i] : [result.answers[i]];
+            const correctAns = q.correctAnswers || (q.correctAnswer !== undefined ? [q.correctAnswer] : []);
+            const isCorrect = userAns.length === correctAns.length && userAns.every(v => correctAns.includes(v as number));
+            if (!isCorrect) acc.push({ idx: i + 1, text: q.question });
+            return acc;
+          }, []);
+
+          const hardestQ = wrongQuestions[0];
+          const skippedCount = result.answers.filter(a => Array.isArray(a) ? a.length === 0 : a === -1).length;
+          const correctCount = quiz.questions.length - wrongQuestions.length;
+
+          if (!hardestQ && skippedCount === 0) return null;
+
+          return (
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-subtle pt-10">
+              {hardestQ && (
+                <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-900/30 rounded-[1.5rem] p-5">
+                  <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5" /> Eng qiyin savol
+                  </p>
+                  <p className="text-sm font-bold text-main leading-snug line-clamp-3">
+                    {hardestQ.idx}. {hardestQ.text}
+                  </p>
+                </div>
+              )}
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-[1.5rem] p-5">
+                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Natija xulosasi
+                </p>
+                <p className="text-sm font-bold text-main">
+                  {correctCount} ta to'g'ri, {wrongQuestions.length - skippedCount} ta xato, {skippedCount} ta o'tkazib yuborildi
+                </p>
+                <div className="mt-3 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all duration-1000", isPassing ? "bg-emerald-500" : "bg-rose-500")}
+                    style={{ width: `${result.score}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16 border-t border-subtle pt-12">

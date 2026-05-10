@@ -8,6 +8,8 @@ import Quiz from './pages/Quiz';
 import Result from './pages/Result';
 import History from './pages/History';
 import Profile from './pages/Profile';
+import Checkout from './pages/Checkout';
+import Admin from './pages/Admin';
 import SharedResult from './pages/SharedResult';
 import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -76,7 +78,9 @@ export default function App() {
                        <Route path="/result/:resultId" element={<ProtectedRoute><Result /></ProtectedRoute>} />
                        <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
                        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                       <Route path="/shared/:resultId" element={<SharedResult />} />
+                       <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+                       <Route path="/shared/:userId/:resultId" element={<SharedResult />} />
                      </Routes>
                    </div>
                 </main>
