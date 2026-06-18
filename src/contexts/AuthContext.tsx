@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { useToast } from './UIContext';
 import { auth, db } from '../lib/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
@@ -32,11 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { showToast } = useToast();
 
   useEffect(() => {
-    // Redirect logindan qaytganda natijani tekshirish
-    getRedirectResult(auth).catch(err => {
-      console.error('Redirect result error:', err);
-    });
-
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       
@@ -77,11 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       provider.setCustomParameters({
         prompt: 'select_account'
       });
-      await signInWithRedirect(auth, provider);
+      await signInWithPopup(auth, provider);
     } catch (error: unknown) {
       const firebaseError = error as { code?: string; message?: string };
       console.error('Error signing in with Google', firebaseError);
-      showToast("Kirishda xatolik yuz berdi: " + firebaseError.message, 'error');
+      
+      if (firebaseError.code === 'auth/popup-closed-by-user') {
+        showToast("Kirish oynasi yopildi. Iltimos, qayta urinib ko'ring.", 'error');
+      } else if (firebaseError.code === 'auth/unauthorized-domain') {
+        const domain = window.location.hostname;
+        showToast(`Ushbu domen ruxsat etilmagan: ${domain}`, 'error');
+      } else {
+        showToast("Kirishda xatolik yuz berdi: " + firebaseError.message, 'error');
+      }
+      
       throw error;
     }
   };
