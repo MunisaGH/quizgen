@@ -39,7 +39,7 @@ const plans = [
   },
 ];
 
-const BOT_USERNAME = 'QuizGenPayBot'; // Telegram bot username
+const BOT_USERNAME = 'quizgen_pay_bot'; // Telegram bot username
 
 export default function Checkout() {
   const { user } = useAuth();
