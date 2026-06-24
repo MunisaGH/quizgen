@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { initBot } from './bot.js';
 
 const require = createRequire(import.meta.url);
 const pdfParse = require('pdf-parse');
@@ -22,6 +23,9 @@ const upload = multer({
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
+
+  // Botni ishga tushirish
+  initBot();
 
   app.use(express.json());
 
